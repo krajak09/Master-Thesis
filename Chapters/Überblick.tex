@@ -1,0 +1,54 @@
+%------------------------------------------------------------------------------
+% Meeting 12. Juni 2025
+%------------------------------------------------------------------------------
+
+% mit Beispiel zwei dim random walk 
+% Problembeschreibung 
+% Bayes -> realtime problem
+
+%------------------------------------------------------------------------------
+% Hintergrund Wahrscheinlichkeitstheorie, Bayes' rule, conditioning
+% einfacheres Beispiel Zeit, Dynamik, Observation, likelihood mit Bayes -> Problem 
+
+% Gold als Testbeispiel: Kann als einfaches Beispiel genutzt werden, später auf komplexere Sets erweitern
+
+% Random Walk Problem:
+% Mit Bayes’scher Methode theoretisch berechenbar, aber praktisch problematisch, da Komplexität mit der Zeit t wächst
+
+% Iterative Lösung nötig, um Berechnung für jeden Zeitschritt effizient durchzuführen → Filtering Equations
+
+% Bayesian Filtering & Kalman Filter:
+% Wird eingeführt, um bewegte Objekte zu tracken (z. B. Tracking eines Objekts mit Dynamik) ==> gutes Beispiel suchen
+
+% Beispiel: Observation mit Noise – Kalman Filter hilft, den Zustand iterativ zu schätzen
+
+% Struktur der Arbeit:
+% Zuerst Bayes’sche Methode erklären (Kapitel 2)
+% Dann Kalman Filter als iterative Lösung einführen
+% Beispielrechnung zeigen, um die Methode zu veranschaulichen
+
+
+
+%------------------------------------------------------------------------------
+% Meeting 17. Juni 2025
+%------------------------------------------------------------------------------
+
+% Q: replace k with t for the time steps? 
+% A: YES
+
+% q könnte v beeinflussen, würde nicht auf einer Linie fliegen
+% update: geschwindigkeit und nicht Position -> durch measurement Model ungenau sehen
+
+% Loop schreiben, t in 1:T
+% x= transition updat
+% y= observation
+% x und y abspeichern
+
+% Matrixmultiplikation mit numpy
+
+% random sampling, gaussian
+% mit numpy machen, falls es nicht funktioniert: scipy für mehr Verteilungen .stats, interface intuitiver
+
+%------------------------------------------------------------------------------
+
+\textcolor{orange}{noch umformulieren}

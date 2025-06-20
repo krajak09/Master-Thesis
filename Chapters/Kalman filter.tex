@@ -1,0 +1,88 @@
+\subsection{The Kalman filter}
+A well-known Bayesian filter is the Kalman filter, which gives the closed form solution to the Bayesian filtering equations. It gives an efficient way to estimate the state of a linear system with Gaussian noise.
+
+The Kalman filter model is given by:
+
+\begin{align}\label{eq:Kalman filter}
+    \mathbf{x}_k &= \mathbf{A}_{k-1}\mathbf{x}_{k-1}+\mathbf{q}_{k-1}, \nonumber\\
+    \mathbf{y}_k &= \mathbf{H}_k\mathbf{x}_k+\mathbf{r}_k
+\end{align}
+
+where 
+\begin{itemize}
+    \item $\mathbf{x}_k$ is the hidden state at time $k$,
+    \item $\mathbf{A}_{k-1}$ is the state transition matrix,
+    \item $\mathbf{1}_{k-1}$ represent the process noise (assumed to be Gaussian),
+    \item $\mathbf{y}_k$ is the measurement at time $k$,
+    \item $\mathbf{H}_k$ is the observation matrix, and
+    \item $\mathbf{r}_k$ is the measurement noise (also assumed to be Gaussian).
+\end{itemize}
+
+The filter operates in two steps:
+\begin{itemize}
+    \item \textbf{Prediction}: The current state is predicted using the system model.
+    \item \textbf{Update (correction)}: This prediction is corrected using the new measurement.
+\end{itemize}
+
+This mix of predicting and updating helps the filter follow the system’s state over time, even when the measurements are noisy.
+
+The Kalman filter is widely used in various fields, including:
+\begin{itemize}
+    \item \textbf{Navigation}: Tracking planes, ships, and spacecraft
+    \item \textbf{Robotics}: Helping robots know their position
+    \item \textbf{Finance}: Modeling stock prices
+    \item \textbf{Weather}: Predicting weather patterns
+    \item \textbf{Phones}: Improving GPS location
+\end{itemize}
+
+% These methods are used in fields such as navigation, aerospace, space engineering, telecommunications, remote sensing, audio signal processing, control systems, and financial modeling, where the accurate estimation of dynamic system variables, either in real time or retrospectively, is important. 
+% \\
+
+\begin{theorem}[Kalman filter]
+The Bayesian filtering equations for the linear filtering model \eqref{eq:Kalman filter} can be evaluated in closed form and the resulting distributions are Gaussian:    
+
+\begin{align}\label{eq:Kalman filter distributions}
+    p(\mathbf{x}_k\mid\mathbf{y}_{1:k-1})&= N(\mathbf{x}_k\mid\mathbf{m}_k^-,\mathbf{P}_k^-),\nonumber \\
+    p(\mathbf{x}_k\mid\mathbf{y}_k)&= N(\mathbf{x}_k\mid\mathbf{m}_k,\mathbf{P}_k),\nonumber \\
+    p(\mathbf{y}_k\mid\mathbf{y}_{1:k-1})&= N(\mathbf{y}_k\mid\mathbf{H}_k\mathbf{m}_k^-,\mathbf{S}_k).
+\end{align}
+The parameters of the distributions above can be computed with the following Kalman filter prediction and update steps.
+
+\begin{itemize}
+    \item The prediction step is
+    \begin{align}
+        \mathbf{m}_k^- &= \mathbf{A}_{k-1}\mathbf{m}_{k-1}, \nonumber\\
+        \mathbf{P}_k^- &= \mathbf{A}_{k-1}\mathbf{P}_{k-1}\mathbf{A}_{k-1}^\top + \mathbf{Q}_{k-1}
+    \end{align}
+
+    \item The update step is
+    \begin{align}
+        \mathbf{v}_k &= \mathbf{y}_k - \mathbf{H}_k\mathbf{m}_k^- \nonumber\\
+        \mathbf{S}_k &= \mathbf{H}_k\mathbf{P}_k^-\mathbf{H}_{k}^\top + \mathbf{R}_k \nonumber\\
+        \mathbf{K}_k &= \mathbf{P}_k^-\mathbf{H}_k^\top\mathbf{S}_k^{-1} \nonumber\\
+        \mathbf{m}_k &= \mathbf{m}_k^- + \mathbf{K}_k\mathbf{v}_k \nonumber\\
+        \mathbf{P}_k &= \mathbf{P}_k^- - \mathbf{K}_k\mathbf{S}_k \mathbf{K}_k^\top
+    \end{align}
+\end{itemize}
+
+The recursion is started from the prior mean $\mathbf{m}_0$ and covariance $\mathbf{P}_0$.
+\end{theorem}
+
+\begin{proof}
+For the proof, check pages 57 and 58 in the book `Bayesian filtering and smoothing' by Simo Särkkä. 
+\end{proof}
+
+
+
+% what is a Kalman Filter and its meaning, applications, why relevant in my thesis
+
+% mathematical background, state space representation, Gaussian noise assumptions, recursive Bayesian estimation (predict-update cycle), introduce predition and update step, covariance matrices
+
+% derivation of the Kalman Fitler Equations, present the KF algorithm step-by-step
+
+% discussion of assumptions and limitations
+
+% application to my thesis
+
+% conclusion?
+

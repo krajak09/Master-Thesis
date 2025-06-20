@@ -1,0 +1,120 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass{article}
+
+\usepackage{graphicx} % Required for inserting images
+\usepackage[english]{babel} % Dictionary
+
+\usepackage{amsmath} % Math writing
+\usepackage{amssymb} % Math symbols
+
+\usepackage{csquotes} % cite a source
+
+\usepackage{amsthm} % Theoremstyle
+
+\usepackage{enumitem} % lists
+\usepackage{pifont} % for special lists
+
+
+\usepackage{graphicx} % Graphics
+\usepackage{float} % insert images fluently
+
+\usepackage{geometry} % margin settings
+
+\usepackage{changes} % to mark changes in the text
+\usepackage{soul} % to mark changes in the text
+%----------------------------------------------------------------------------------------
+%	MARGIN SETTINGS
+%----------------------------------------------------------------------------------------
+
+% \geometry{
+% 	paper=a4paper, % Change to letterpaper for US letter
+% 	inner=2.5cm, % Inner margin
+% 	outer=3.8cm, % Outer margin
+% 	bindingoffset=.5cm, % Binding offset
+% 	top=1.5cm, % Top margin
+% 	bottom=1.5cm, % Bottom margin
+% 	%showframe, % Uncomment to show how the type block is set on the page
+% }
+
+% Bibliography
+\usepackage[
+backend = biber, 
+style = numeric, 
+sorting = nty 
+]{biblatex}
+\addbibresource{references.bib} %adds the source file
+% backend = biber sorts the bibliography
+% style = numberic uses numbers for the sources, can also be alphabetic, authoryear, authortitle etc. 
+% sorting = nty sorts the sources by name, title, year, also possible nyt, nyvt (volume), none etc. for more information see overleaf documentation, Bibliography management in LaTeX
+
+
+
+% Theoremstyle
+\theoremstyle{plain} % boldface title, italicized body
+\newtheorem{theorem}{Theorem}[section]
+
+\theoremstyle{definition} % boldface title, Roman body
+\newtheorem{definition}[theorem]{Definition}
+
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{property}[theorem]{Property}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark} % italicized title, Roman body
+\newtheorem*{remark}{Remark}
+
+%----------------------------------------------------------------------------------------
+%   NEW COMMANDS
+%----------------------------------------------------------------------------------------
+
+\newcommand*\N{\mathbb{N}}
+\newcommand*\Z{\mathbb{Z}}
+\newcommand*\Q{\mathbb{Q}}
+\newcommand*\R{\mathbb{R}}
+
+\newcommand*\x{\mathbf{x}}
+\newcommand*\y{\mathbf{y}}
+
+%----------------------------------------------------------------------------------------
+
+\title{Master Thesis}
+\author{Keerthiga Rajakumar}
+\date{\today}
+
+\begin{document}
+
+\pagenumbering{gobble} % no page numbering
+
+\maketitle
+\newpage
+
+\tableofcontents % table of contents
+
+\newpage
+
+\pagenumbering{arabic} % style of the page numbering, can be arabic, alph, Alph, roman, Roman
+\setcounter{page}{1} % set the page counter to 1
+
+\section{Basic Probability}
+\input{Chapters/Basic Probability.tex}
+
+\newpage
+\section{Bayesian filtering equations and exact solutions}
+\input{Chapters/Bayesian filtering equations and exact solutions.tex}
+
+\newpage
+\section{Kalman filter}
+\input{Chapters/Kalman filter}
+
+\newpage
+\section{Überblick}
+\input{Chapters/Überblick}
+
+
+\end{document}
+

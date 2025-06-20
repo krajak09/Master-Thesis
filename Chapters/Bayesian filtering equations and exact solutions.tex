@@ -1,0 +1,29 @@
+\subsection{Introduction to Bayesian filtering}
+Bayesian filtering provides a structured way to estimate the state of a system that changes over time and can only be observed through noisy data. The system’s state usually includes time-dependent variables that describe its condition at each moment. However, measurements are often inaccurate because of noise, which creates uncertainty. On top of that, the system’s behavior over time can be affected by random changes or errors in the model, known as process noise.
+\\
+Bayesian filtering uses all observations up to the current time to estimate the system’s current state. Bayesian smoothing goes a step further by also using future observations to get better estimates of past states. Both filtering and smoothing are key tools in time series analysis and are used in many different fields.
+
+
+% More generally, Bayesian filtering uses a set of recursive equations that work for both simple (linear-Gaussian) and more complex (nonlinear or non-Gaussian) models. The filtering process has two main steps:
+% \begin{itemize}
+%     \item A prediction step, which estimates the state based on the previous state and the system’s dynamics.
+%     \item An update step, which incorporates the new observation to refine the state estimate.
+% \end{itemize}
+
+\begin{theorem}[Bayesian filtering equations]
+The recursive equations (the Bayesian filter) for computing the predicted distribution $p(\mathbf{x}_t \mid \mathbf{y}_{1:t-1})$ and the filtering distribution $p(\mathbf{x}_t \mid \mathbf{y}_{1:t})$ at the time step $t$ are given by the following Bayesian filtering equations.
+\begin{itemize}
+    \item \textbf{Initialization} The recursion starts from the prior distribution $p(\mathbf{x}_0)$
+    \item \textbf{Prediction step} The predictive distribution of the state $\mathbf{x}_t$ at the time $t$, given the dynamic model, can be computed by the Chapman-Kolmogorov equation
+    \[p(\mathbf{x}_t \mid \mathbf{y}_{1:t-1}) = \int p(\mathbf{x}_t \mid \mathbf{x}_{t-1})p(\mathbf{x}_{t-1} \mid \mathbf{y}_{1:t-1})d\mathbf{x}_{t-1}.\]
+    \item \textbf{Update step} Given the measurement $\mathbf{y}_t$ at time step $t$ the posterior distribution of the state $\mathbf{x}_t$ can be computed by Bayes' rule
+    \[p(\mathbf{x}_t\mid \mathbf{y}_{1:t}) = \frac{1}{Z_t}\textbf{ }p(\mathbf{y}_t \mid \mathbf{x}_t)\textbf{ }p(\mathbf{x}_t\mid \mathbf{y}_{1:t-1}),\]
+    where the normalization constant $Z_t$ is given as 
+    \[Z_t = \int p(\mathbf{y}_t \mid \mathbf{x}_t) \textbf{ }p(\mathbf{x}_t\mid \mathbf{y}_{1:t-1}) \textbf{ }d\mathbf{x}_t\]
+\end{itemize}
+The integrals are replaced with summations if the components of the state are discrete. 
+\end{theorem}
+
+\begin{proof}
+For the proof, check pages 55 and 56 in the book `Bayesian filtering and smoothing' by Simo Särkkä. 
+\end{proof}

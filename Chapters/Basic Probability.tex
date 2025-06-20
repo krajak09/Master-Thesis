@@ -1,0 +1,130 @@
+\begin{itemize}
+    \item Conditional probability distribution % Kalman Filter
+    \item Gaussian random walk
+\end{itemize}
+
+\subsection{Probabilistic state space models}
+% Definition is from the book Bayesian filtering and smoothing` by Simo Särkkä page 51.
+\begin{definition}[Probabilistic state space models]
+A probabilistic state space model or non-linear filtering model consists of a sequence of conditional probability distributions: 
+\begin{align}
+&\mathbf{x}_t \sim p(\mathbf{x}_t \mid \mathbf{x}_{t-1}), \nonumber \\
+&\mathbf{y}_t \sim p(\mathbf{y}_t \mid \mathbf{x}_t),
+\end{align}
+for $t=1,2,...$, where 
+\begin{itemize}
+    \item $\mathbf{x}_t \in \mathbb{R}^n$ is the state of the system at time step $t$,
+    \item $\mathbf{y}_t \in \mathbb{R}^m$ is the measurement at time step $t$, 
+    \item $p(\mathbf{x}_t\mid \mathbf{x}_{t-1})$ is the dynamic model which describes the stochastic dynamics of the system. The dynamic model can be a probability density, a counting measure or a combination of them depending on whether the state $\mathbf{x}_t$ is continuous, discrete, or hybrid. 
+    \item $p(\mathbf{y}_t\mid \mathbf{x}_t)$ is the measurement model, which is the distribution of measurements given the state. 
+\end{itemize}
+The model is assumed to be Markovian, which means that it has the following two properties. 
+\end{definition}
+
+% Property is from the book Bayesian filtering and smoothing` by Simo Särkkä page 52.
+\begin{property}[Markov property of states]
+The states $\{\mathbf{x}_t: t = 0,1,2,...\}$ form a Markov sequence (or Markov chain if the state is discrete). This Markov property means that $\mathbf{x}_t$ (and actually the whole future $\mathbf{x}_{t+1}, \mathbf{x}_{t+2},...$) given $\mathbf{x}_{t-1}$ is independent of anything that has happened before the time step $t-1$: 
+
+\begin{equation}\label{eq: Markov property of states}
+   p(\mathbf{x}_t\mid \mathbf{x}_{1:t-1},\mathbf{y}_{1:t-1} )=  p(\mathbf{x}_t\mid \mathbf{x}_{t-1}).
+\end{equation}
+
+\noindent Also the past is independent of the future given the present: 
+
+\begin{equation}
+   p(\mathbf{x}_{t-1}\mid \mathbf{x}_{t:T},\mathbf{y}_{t:T} )=  p(\mathbf{x}_{t-1}\mid \mathbf{x}_t).
+\end{equation}
+\end{property}
+
+% Property is from the book Bayesian filtering and smoothing` by Simo Särkkä page 52.
+\begin{property}[Conditional independence of measurements]
+The current measurement $\mathbf{y}_t$ given the current state $\mathbf{x}_t$ is conditionally independent of the measurement and state histories: 
+\begin{equation}\label{eq: Conditional independence of measurements}
+p(\mathbf{y}_t \mid \mathbf{x}_{1:t}, \mathbf{y}_{1:t-1}) = p(\mathbf{y}_t \mid \mathbf{x}_t).    
+\end{equation}
+\end{property}
+
+%------------------------------------------------------------------------
+%------------------------------------------------------------------------
+
+\noindent Let us start with an example to get a better understanding of the definition.
+\begin{example}[Tracking a drone's position and velocity in 2D]
+Imagine you are watching a drone fly over an open field. You want to keep track of where the drone is and how fast it is moving in both directions, vertically and horizontally. At each point in time, the drone has a position and a velocity. To represent this, we define something called the \textbf{state} of the system. The state is a list of numbers that describe everything we need to know about the drone.
+
+To model this, we organize these numbers into a state vector, which lists all the quantities we want to keep track of: 
+\[ \mathbf{x}_t = \begin{bmatrix}
+    x_t \\ y_t \\ v_{x,t} \\ v_{y,t}
+\end{bmatrix},\]
+
+where
+\begin{itemize}
+    \item $(x_t,y_t)$ represent the position of the drone at time step $t$,
+    \item $(v_{x,t},v_{y,t})$ represent the velocity in the $x$ and $y$ directions. 
+\end{itemize}
+
+%------------------------------------------------------------------------
+
+Let's consider what we can actually observe. Suppose we have a GPS sensor that tells us the drone's position at each time step. This means we can measure the position, but not the velocity. In other words, we know where the drone is but not how fast it is moving. The \textbf{observation model} describes how the measurements we receive are connected to the drone's actual position \textcolor{orange}{(data we can observe)} and velocity \textcolor{orange}{(important but hidden variable from direct measurement).} 
+
+The observation model is written like this: 
+
+\begin{equation}\label{eq: observation model}
+\textbf{y}_t = \textbf{H}\textbf{x}_{t}+\textbf{r}_{t},   
+\end{equation}
+
+where 
+\begin{itemize}
+    \item $\textbf{y}_t$ is the measurement at time step $t$,
+    \item $\textbf{H}$ is a matrix that shows \textcolor{orange}{how the state vector relates to the observed measurements},
+    \item $\mathbf{r}_t$ represents small random measurement noise and is modeled as Gaussian, i.e. $\mathbf{r}_t \sim \mathcal{N}(0, \mathbf{R})$. In our example, this corresponds to the GPS error. 
+\end{itemize}
+
+The observation matrix \textbf{H} is: 
+\[\mathbf{H} = \begin{bmatrix}
+   1 & 0 & 0 & 0\\
+   0 & 1 & 0 & 0\\   
+\end{bmatrix}\]
+
+The matrix has non-zero entries in the first and second columns since we can only observe position. This means: 
+
+\[\mathbf{y}_t = \begin{bmatrix}
+   \textbf{x}_t \\
+   \textbf{y}_t \\ 
+\end{bmatrix} + \textbf{r}_t\]
+
+%-----------------------------------------------------------------------------------------
+
+Now we make a simple assumption about how the drone moves. % Has not to be a straight line - M1706: We assume it keeps flying at about the same speed in a straight line
+\textcolor{orange}{We assume it flies with approximately constant velocity.} This means its future position depends on where it is now and how fast it is going. The position alone would not be enough because the drone might be hovering in place or racing across the field. If we know the current state, we can make a good guess about what the next state will be. 
+
+This is called the state \textbf{transition model}. It tells us how the drone's state changes from moment to moment. We include some randomness since movement is not always perfect, e.g.~the wind might push the drone a little off course. 
+
+The transition model is written like this: 
+\begin{equation}\label{eq: transition model}
+\textbf{x}_t = \textbf{A}\textbf{x}_{t-1}+\textbf{q}_{t-1},   
+\end{equation}
+
+where 
+\begin{itemize}
+    \item $\textbf{x}_t$ is the state at time step $t$,
+    \item $\textbf{A}$ is a matrix that describes how position and velocity are updated, 
+    \item $\mathbf{q}_{t-1}$ represents small random measurement noise and is modeled as Gaussian, i.e. $\mathbf{q}_{t-1} \sim \mathcal{N}(0, \mathbf{Q})$. In our example, this would be a wind pushing the drone off course. 
+\end{itemize}
+
+If we take measurements every $\Delta t$ seconds, then the matrix $\textbf{A}$ might look like this:
+\[\mathbf{A} = \begin{bmatrix}
+   1 & 0 & \Delta t & 0\\
+   0 & 1 & 0 & \Delta t\\   
+   0 & 0 & 1 & 0\\
+   0 & 0 & 0 & 1\\
+\end{bmatrix}\]
+\textcolor{orange}{This matrix updates the position by adding velocity multiplied by time.} The velocity remains the same for each step.
+
+
+\end{example}
+
+%-----------------------------------------------------------------------------------------
+%-----------------------------------------------------------------------------------------
+
+
+
