@@ -89,8 +89,8 @@ The observation matrix \textbf{H} is:
 The matrix has non-zero entries in the first and second columns since we can only observe position. This means: 
 
 \[\mathbf{y}_t = \begin{bmatrix}
-   \textbf{x}_t \\
-   \textbf{y}_t \\ 
+   x_t \\
+   y_t \\ 
 \end{bmatrix} + \textbf{r}_t\]
 
 %-----------------------------------------------------------------------------------------
@@ -113,17 +113,17 @@ where
     \item $\mathbf{q}_{t-1}$ represents small random measurement noise and is modeled as Gaussian, i.e. $\mathbf{q}_{t-1} \sim \mathcal{N}(0, \mathbf{Q})$. In our example, this would be a wind pushing the drone off course. 
 \end{itemize}
 
-In our example, this noise can affect either the position or the velocity. It can also affect both but we'll concentrate on these two cases. In the following we will take a closer look to both cases. 
+In our example, this noise can affect either the position or the velocity. It can also affect both but we'll concentrate on these two cases. In the following, we will take a closer look on both cases. 
 
 \begin{itemize}
-    \item{1. Case: Position noise only:} We assume uncertainty arises mainly from small movements in the drone's position, e.g.\~minor GPS shifts, while the velocity remains constant. The noise vector then looks like:
+    \item{1. Case: Position noise only:} We assume uncertainty arises mainly from small movements in the drone's position, e.g.\~ minor GPS shifts, while the velocity remains constant. The noise vector then looks like:
     \[\mathbf{q}_{t-1} = \begin{bmatrix}
         q_x \\
         q_y \\
         0 \\
         0
     \end{bmatrix},\]
-    where $\mathbf{q}_x$ and $\mathbf{q}_y$ are Gaussian with mean $0$ and variance $\sigma_\text{pos}^2$ and the covariance matrix: 
+    where $q_x$ and $q_y$ are Gaussian with mean $0$ and variance $\sigma_\text{pos}^2$ and the covariance matrix: 
     \[\mathbf{Q}=\begin{bmatrix}
         \sigma_\text{pos}^2 & 0 & 0 & 0 \\
         0 & \sigma_\text{pos}^2 & 0 & 0 \\
