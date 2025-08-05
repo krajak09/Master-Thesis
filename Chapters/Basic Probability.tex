@@ -113,7 +113,7 @@ where
     \item $\mathbf{q}_{t-1}$ represents small random measurement noise and is modeled as Gaussian, i.e. $\mathbf{q}_{t-1} \sim \mathcal{N}(0, \mathbf{Q})$. In our example, this would be a wind pushing the drone off course. 
 \end{itemize}
 
-In our example, this noise can affect either the position or the velocity. It can also affect both but we'll concentrate on these two cases. In the following, we will take a closer look on both cases. 
+In our example, this noise can affect either the position or the velocity. It can also affect both but we'll concentrate on these two cases. In the following, we will take a closer look at both cases. 
 
 \begin{itemize}
     \item{1. Case: Position noise only:} We assume uncertainty arises mainly from small movements in the drone's position, e.g.\~ minor GPS shifts, while the velocity remains constant. The noise vector then looks like:
@@ -132,7 +132,7 @@ In our example, this noise can affect either the position or the velocity. It ca
     \end{bmatrix}\]
     Here the drone drifts around over the field but keeps the same speed. 
     
-    \item{2. Case: Velocity noise only:} This time we assume the position evolves smoothly but the drone's velocity or direction may change slightly, e.g.\~due to a breeze. Then:
+    \item{2. Case: Velocity noise only:} This time we assume the position evolves smoothly but the drone's velocity or direction may change slightly, e.g.~due to a breeze. Then:
     \[\mathbf{q}_{t-1}= \begin{bmatrix}
         0 \\
         0 \\
