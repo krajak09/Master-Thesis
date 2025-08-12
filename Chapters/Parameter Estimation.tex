@@ -5,7 +5,7 @@ First we defined the energy function based on the negative log-likelihood of the
 Code explanation: 
 \begin{enumerate}
     \item $\textbf{Data Preparation}$: The data is from Kaggle and we only considered the open price for the measurement data. 
-    \item $\textbf{Energy function}$: The input of the energy function was theta, which is an array. In contains the log values of $q$ and $r$. We used the log values because that ensures positivity we need. Inside the function we set up the Kalman filter for each call so that the state is reset. Resetting the state ensures that each trial starts from the same initial condition. 
+    \item $\textbf{Energy function}$: The input of the energy function was theta, which is an array. In contains the log values of $q$ and $r$. We used the log values because that ensures positivity we need. Inside the function we set up the Kalman filter for each call so that the state is reset. Resetting the state ensures that each trial starts from the same initial condition.
     \begin{itemize}
         \item $F$ is the state transition matrix,
         \item $H$ is the measurement matrix,
@@ -21,7 +21,7 @@ Code explanation:
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.8\textwidth]{Chapters/Figures/Time Series Gold Price.png}
+    \includegraphics[width=0.8\textwidth]{Figures/Time Series Gold Price.png}
     \caption{Time Series Gold Price}
     \label{fig:time_series_goldprice}
 \end{figure}

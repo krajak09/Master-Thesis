@@ -1,5 +1,7 @@
 % https://portfoliooptimizationbook.com/
 
+% \cite{palomar:portfolio_optimization}
+\newpage
 \subsection{Prices and Returns}
 
 The price of an asset $p_t$ is the most obvious quantity, where $t$ is the discrete time index, it can also be continuous.
@@ -9,3 +11,38 @@ When it comes to modeling, using the logarithm of the prices enhances the mathem
 % The simplest model for the log-prices is the random walk
 
 
+\subsection{Financial Data: I.I.D. Modeling}
+EMH: price of security = intrinsic value
+any further information about future prospects incorporated in the current price (forecast = current price) 
+-> modeling the prices as a random walk $\iff$ returns as a sequence of iid random variables
+
+multiple assets: random variables = return of all assets (multivariate random variable)
+
+under iid: no temporal structure incorporated returns are assumed to be independent distribution of random returns assumed fixed
+\subsection{I.I.D. Model}
+ignores temporal structures/ dependency in the data
+\[x_t = \mu + \epsilon_t\]
+\subsection{Sample Estimators}
+sample mean
+sample covariance matrix
+estimators are unbiased and consistent
+\subsection{Location Estimators}
+\begin{enumerate}
+    \item $\textbf{Least square estimator}$
+    \item $\textbf{Median estimator}$
+    \item $\textbf{Spatial median estimator or geometric median}$
+\end{enumerate}
+
+Numerical experiments
+
+For $\textbf{Gaussian data}$, the sample mean is the best estimator (as further analyzed in Section 3.4), the spatial median is almost identical, and the elementwise median is the worst. 
+For $\textbf{heavy-tailed data}$, the sample mean is as bad as the median and the spatial median remains the best. 
+
+Overall, the spatial median seems to be the best option as it is robust to outliers and does not underperform under Gaussian data.
+
+\subsection{Gaussian ML estimators}
+Maximum likelihood estimation: important technique in estimation theory
+likelihood function
+
+pdf to the iid model, assuming that the residual follows a multivariate normal or Gaussian distribution, is 
+\[f(x) = \frac{1}{\sqrt{(2\pi)^N|\Sigma|}}exp(-\frac{1}{2}(x-\mu)^\intercal\Sigma^{-1}(x-\mu))\]
