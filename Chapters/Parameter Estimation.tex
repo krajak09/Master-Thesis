@@ -1,3 +1,20 @@
+% Bayesian Estimation of Parameters in State Space Models
+% Parameter Posterior and Energy Function
+% Maximum A Posteriori and Laplace Approximations
+% State Augmentation Approach
+% Parameter Estimation in Linear State Space Models
+\begin{theorem}[Energy function for linear Gaussian model]
+    The recursion for the energy function is given as 
+    \[\psi_k(\theta) = \psi_{k-1} + \frac{1}{2}log\textbf{ }|2\pi\textbf{ 
+    }\mathbf{S}_k(\theta)| + \frac{1}{2}\mathbf{v}_k^\intercal(\theta)\textbf{ }\mathbf{S}_k^{-1}(\theta)\mathbf{v}_k(\theta), \]
+
+    where the terms $\mathbf{v}_k$
+\end{theorem}
+% Parameter Estimation with Gaussian Filtering and Smoothing
+
+
+% 4. August 
+% 5. August: update code explanation! This was before the meeting
 The goal was to estimate the optimal process and measurement noises $q$ and $r$ of the Kalman filter applied to the gold price dataset. 
 
 First we defined the energy function based on the negative log-likelihood of the observed data. Then we run an optimization routine to find $q$ and $r$ that minimize the energy function. In the last step we used the optimized parameters to run the Kalman filter and plot the filtered estimates and the raw data. 
@@ -25,3 +42,7 @@ Code explanation:
     \caption{Time Series Gold Price}
     \label{fig:time_series_goldprice}
 \end{figure}
+
+%--------------------------------------------------------------------------
+% 13. August 2025
+
