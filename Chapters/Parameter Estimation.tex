@@ -1,3 +1,10 @@
+% \cite{palomar:portfolio_optimization}
+so far assumed: parameters of the state space models are known and only the state needs to be estimated. In practical models, the parameters are unknown as well. In this chapter, there are three types of methods for parameter estimation. 
+\begin{enumerate}
+    \item Optimization-based methods for computing maximum a posteriori (MAP) or maximum likelihood (ML) estimates
+    \item Expectation-maximization (EM) algorithms for computing the MAP or ML estimates
+    \item Markov chain Monte Carlo (MCMC) methods for generating Monte Carlo approximations of the posterior distributions
+\end{enumerate}
 % Bayesian Estimation of Parameters in State Space Models
 % Parameter Posterior and Energy Function
 % Maximum A Posteriori and Laplace Approximations
@@ -8,7 +15,21 @@
     \[\psi_k(\theta) = \psi_{k-1} + \frac{1}{2}log\textbf{ }|2\pi\textbf{ 
     }\mathbf{S}_k(\theta)| + \frac{1}{2}\mathbf{v}_k^\intercal(\theta)\textbf{ }\mathbf{S}_k^{-1}(\theta)\mathbf{v}_k(\theta), \]
 
-    where the terms $\mathbf{v}_k$
+    where the terms $\mathbf{v}_k$ and $\mathbf{S}_k(\theta)$ are given by the Kalman filter with the parameters fixed to $\theta$.
+    \begin{itemize}
+        \item Prediction: 
+            \begin{itemize}
+                \item[] $\mathbf{m}_k^-(\theta) = \mathbf{A}(\theta)\textbf{ }\mathbf{m}_{k-1}(\theta)$
+                \item[] $\mathbf{P}_k^-(\theta) = \mathbf{A}(\theta)\textbf{ }\mathbf{P}_{k-1}(\theta)\textbf{ }\mathbf{A}^\intercal(\theta)+\mathbf{Q}(\theta)$
+            \end{itemize}
+        \item Update: 
+            \begin{itemize}
+                \item[] $\mathbf{v}_k(\theta)=\mathbf{y}_k - \mathbf{H}_k(\theta)\textbf{ }\mathbf{m}_k^-(\theta)$
+                \item[] $\mathbf{S}_k(\theta)= \mathbf{H}_k(\theta) \textbf{ } \mathbf{P}_k^-(\theta)\textbf{ }\mathbf{H}^\intercal(\theta)+\mathbf{R}(\theta)$
+                \item[] $\mathbf{K}_k(\theta)= \mathbf{P}_k^-(\theta)\textbf{ }\mathbf{H}^\intercal(\theta)\textbf{ }\mathbf{S}_k^{-1}(\theta)$
+                \item[] $\mathbf{m}_k(\theta)=\mathbf{m}_k^-(\theta)+\mathbf{K}_k(\theta)\textbf{ }\mathbf{v}_k(\theta)$
+                \item[] $\mathbf{P}_k(\theta)=\mathbf{P}_k^-(\theta)- \mathbf{K}_k(\theta)\textbf{ }\mathbf{S}_k(\theta)\textbf{ }\mathbf{K}_k^\intercal(\theta)$
+    \end{itemize}        
 \end{theorem}
 % Parameter Estimation with Gaussian Filtering and Smoothing
 

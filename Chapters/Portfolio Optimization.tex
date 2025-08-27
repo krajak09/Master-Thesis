@@ -46,3 +46,255 @@ likelihood function
 
 pdf to the iid model, assuming that the residual follows a multivariate normal or Gaussian distribution, is 
 \[f(x) = \frac{1}{\sqrt{(2\pi)^N|\Sigma|}}exp(-\frac{1}{2}(x-\mu)^\intercal\Sigma^{-1}(x-\mu))\]
+
+
+\subsection{Autoregressive (AR) Model}
+% 15. August 2025-------------------------------------------------------
+
+% \textbf{Autoregressive (AR) model}
+
+% \begin{itemize}
+%     \item[\textbf{Order 1:}] $$x_t = \varphi_0 + \varphi_1x_{t-1}+\epsilon_t,$$ where $\varphi_0,\varphi_1$ are constants, $\epsilon_t$ we want to be normal distributed with mean 0 and variance $\sigma^2$ since we want to apply the Kalman filter. 
+%     The state space model: 
+    
+%     state: $\begin{bmatrix} 1 \\ x_t
+%     \end{bmatrix}$
+    
+%     transition matrix: $\begin{bmatrix}
+%         1 & 0 \\ \varphi_0 & \varphi_1
+%     \end{bmatrix}
+%     \begin{bmatrix}
+%         1 \\ x_t
+%     \end{bmatrix} = 
+%     \begin{bmatrix}
+%         1 \\ \varphi_0 + \varphi_1
+%     \end{bmatrix}$
+
+%     covariance matrix: COV = $\begin{bmatrix}
+%         0 (\sigma) & 0 \\ 0 & \sigma
+%     \end{bmatrix}$
+    
+%     \item[\textbf{Order n:}] $$x_t= \varphi_0 + \sum_{i=1}^n\varphi_ix_{t-i} + \epsilon_t$$
+
+%     state: $\begin{bmatrix}
+%         1 \\ x_t \\ x_{t-1} \\ ... \\ x_{t-n}
+%     \end{bmatrix}$
+
+%     transition matrix: $\begin{bmatrix}
+%         1 & 0 & ... & 0 & 0 \\
+%         \varphi_0 & \varphi_1 & ... & \varphi_{n-1}& \varphi_n \\
+%         0 & 1 & 0 & ... & 0 \\
+%         0 & ... & ... & ... & 0 \\
+%         0 & ... & ... & 0 & 1\\
+%     \end{bmatrix}
+%     \begin{bmatrix}
+%         1 \\ x_t \\ x_{t-1} \\ ... \\ x_{t-n}
+%     \end{bmatrix}=
+%     \begin{bmatrix}
+%         1 \\
+%         \varphi_0 + \sum_{i=1}^n\varphi_ix_{t-i} \\
+%         x_t\\ 
+%         ...\\
+%         x_{t-n+1}
+%     \end{bmatrix}$
+        
+%     covariance matrix: $\begin{bmatrix}
+%         0 & ... & ... & ... & 0 \\
+%         0 & \sigma & 0 & ... & 0 \\
+%         0 & ... & ... & ... & 0 \\
+%         ... & ... & ... & ... &... \\
+%         0 & ... & ... & ... & 0
+%     \end{bmatrix}$
+% \end{itemize}
+
+%-----------------------------------------------------------------------
+AR(1): $x_t = \varphi_0 + \varphi_1 x_{t-1} + \epsilon_t,$ where $\epsilon_t \sim \mathcal{N}(0, \sigma^2)$
+
+\textbf{State vector}
+\[
+\mathbf x_t =
+\begin{bmatrix}
+1\\ x_t
+\end{bmatrix}.
+\]
+
+\textbf{State transition}
+\[
+\mathbf x_t =
+\underbrace{\begin{bmatrix}
+1 & 0\\
+\varphi_0 & \varphi_1
+\end{bmatrix}}_{F}\,
+\mathbf x_{t-1}
++
+\underbrace{\begin{bmatrix}
+0\\ \epsilon_t
+\end{bmatrix}}_{\mathbf q_t},
+\qquad
+\epsilon_t \sim \mathcal N(0,\sigma^2).
+\]
+
+\textbf{Process covariance}
+\[
+Q \;=\;
+\begin{bmatrix}
+0 & 0\\
+0 & \sigma^2
+\end{bmatrix}.
+\]
+
+\textbf{Measurement equation}
+\[
+y_t = 
+\underbrace{\begin{bmatrix} 0 & 1 \end{bmatrix}}_{H}\,\mathbf x_t + r_t,
+\qquad
+r_t \sim \mathcal N(0,R).
+\]
+
+\textbf{Initialization}
+\[
+\mathbf x_0 \sim \mathcal N(m_0, P_0).
+\]
+
+% AR(p) with intercept in state–space form
+\noindent AR(p): $x_t = \varphi_0 + \sum_{i=1}^p \varphi_i x_{t-i} + \epsilon_t,$ where  $\epsilon_t \sim \mathcal{N}(0, \sigma^2)$
+
+\textbf{State vector}
+\[
+\mathbf{x}_t =
+\begin{bmatrix}
+1 \\
+x_t \\
+x_{t-1} \\
+\vdots \\
+x_{t-p+1}
+\end{bmatrix} \in \mathbb{R}^{p+1}.
+\]
+
+\textbf{transition matrix:}
+\[
+F =
+\begin{bmatrix}
+\varphi_0 & \varphi_1 & \varphi_2 & \cdots & \varphi_p \\
+1 & 0 & 0 & \cdots & 0 \\
+0 & 1 & 0 & \cdots & 0 \\
+0 & 0 & 1 & \cdots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & \cdots & 0 & 1 & 0 
+\end{bmatrix}
+\]
+
+\textbf{observation matrix:}
+\[
+H =
+\begin{bmatrix}
+0 & 1 & 0 & \cdots & 0
+\end{bmatrix}
+\]
+
+\textbf{process noise covariance:}
+\[
+Q =
+\begin{bmatrix}
+0 & 0 & \cdots & 0 \\
+0 & \sigma^2 & \cdots & 0 \\
+\vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \cdots & 0
+\end{bmatrix}
+\in \mathbb{R}^{(p+1)\times(p+1)}.
+\]
+
+\textbf{observation equation:}
+
+\[
+y_t =
+\underbrace{\begin{bmatrix}
+0 & 1 & 0 & \cdots & 0
+\end{bmatrix}}_{\displaystyle H}
+\mathbf{x}_t + r_t,
+\qquad
+r_t \sim \mathcal{N}(0,R).
+\]
+
+\textbf{State transition}
+\[
+\mathbf{x}_t =
+\underbrace{
+\begin{bmatrix}
+\varphi_0 & \varphi_1 & \varphi_2 & \cdots & \varphi_p \\
+1 & 0 & 0 & \cdots & 0 \\
+0 & 1 & 0 & \cdots & 0 \\
+0 & 0 & 1 & \cdots & 0 \\
+\vdots & \vdots & \vdots & \ddots & \vdots \\
+0 & 0 & \cdots & 1& 0 
+\end{bmatrix}
+}_{\displaystyle F}
+\mathbf{x}_{t-1}
++
+\underbrace{
+\begin{bmatrix}
+0 \\
+\epsilon_t \\
+0 \\
+\vdots \\
+0
+\end{bmatrix}
+}_{\displaystyle \mathbf{q}_t},
+\qquad \epsilon_t \sim \mathcal{N}(0,\sigma^2).
+\]
+
+
+
+\textbf{Initialization}
+Choose prior mean and covariance for the state
+\[
+\mathbf{x}_0 \sim \mathcal{N}(m_0,\; P_0).
+\]
+
+
+\subsection*{Markov Property of the AR(p) Model} % ----------------chatGPT----------------
+
+The autoregressive model of order \(p\),
+\[
+x_t = \varphi_0 + \sum_{i=1}^{p} \varphi_i x_{t-i} + \epsilon_t,
+\quad \epsilon_t \sim \mathcal{N}(0, \sigma^2),
+\]
+is not a first-order Markov process in its scalar form, since the value of \(x_t\) depends on the \(p\) previous values \(x_{t-1}, x_{t-2}, \dots, x_{t-p}\). Therefore, it is a Markov process of order \(p\).
+
+However, when the AR(p) model is written in state-space form, we define a state vector
+\[
+\mathbf{x}_t =
+\begin{bmatrix}
+1 \\
+x_t \\
+x_{t-1} \\
+\vdots \\
+x_{t-p+1}
+\end{bmatrix}
+\in \mathbb{R}^{p+1},
+\]
+and the dynamics become:
+\[
+\mathbf{x}_t = A \mathbf{x}_{t-1} + \mathbf{w}_t,
+\]
+where \(\mathbf{w}_t\) is process noise.
+
+In this formulation, the state process \(\{\mathbf{x}_t\}\) satisfies the first-order Markov property:
+\[
+P(\mathbf{x}_t \mid \mathbf{x}_{t-1}, \mathbf{x}_{t-2}, \dots) = P(\mathbf{x}_t \mid \mathbf{x}_{t-1}).
+\]
+
+\textbf{Conclusion:} The scalar AR(p) process is Markov of order \(p\), but its state-space representation defines a first-order Markov process. This Markov structure is essential for the application of the Kalman filter.
+
+
+% 21. August 2025 ----- Notizen von \cite{palomar:portfolio_optimization}
+
+\subsection{Financial Data: Time Series Modeling}
+\subsubsection{Mean Modeling}
+- Given past observations we are interested in forecasting the future values of a financial time series
+- decide whether to focus on time series of the prices or the returns
+- returns tend to be more constant and easier to model 
+- prices tend to present a trend 
+- Recall: log-prices $y_t=\textbf{log }p_t$ and log-return $x_t= y_t-y_{t-1}$
+
+- the objective is to compute the expectation of the future value of the time series at time $t$ based on the past observations $\mathcal{F}_{t-1}$. This is done in order to uncover potential sturcutral patterns, either through $\mathbb{E}[y_t \mid \mathcal{F}_{t-1}$ for log-prices or $\mathbb{E}[x_t \mid \mathcal{F}_{t-1}$ for log-returns. 
