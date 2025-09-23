@@ -1,0 +1,55 @@
+% Linear Growth Model/ Local Linear Trend State Space Model-------------------
+% \cite{triantafyllopoulos:bayesian_state_space}
+\subsection*{Local Linear Trend Model}
+
+State Space: 
+
+\textbf{State vector:}
+\[x_t= \begin{bmatrix} 
+                \mu_t \\ 
+                \nu_t 
+            \end{bmatrix}\]
+
+where $\mu_t$ is the local level and $\nu_t$ is the local slope.
+
+\textbf{State transition equation:}
+$$x_{t+1} = Fx_t + q_t$$ 
+
+with transition matrix
+$F=\begin{bmatrix} 
+        1 & 1 \\ 
+        0 & 1
+    \end{bmatrix},$
+$q_t = \begin{bmatrix}
+    \eta_t \\ \zeta_t
+\end{bmatrix}$
+and process noise covariance
+$Q=\begin{bmatrix} 
+        \sigma^2_\eta & 0 \\ 
+        0 & \sigma^2_\zeta 
+    \end{bmatrix}.$
+    
+\textbf{Observation equation:}
+$$y_t = Hx_t+\epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma^2_\epsilon)$$ 
+
+with observation matrix $H=\begin{bmatrix} 1 & 0 \end{bmatrix}.$
+
+\begin{itemize}
+    \item $\eta_t$ level noise, 
+    \item $\zeta_t$ slope noise and
+    \item $\epsilon_t$ observation noise. 
+
+    \item $\nu_t$ follows a linear function and a random error $\zeta_t$
+\end{itemize}
+
+\textbf{Component form:}
+% component form shows the individual dynamics of \mu_t and \beta_t whereas matrix form is compact and convenient for algorithms (Kalman filter, smoothing)
+
+$$\mu_{t+1} = \mu_t + \nu_t + \eta_t, \quad \eta_t \sim \mathcal{N}(0, \sigma^2_\eta)$$ 
+% level: previous level + slope + random noise \eta_t
+
+$$\nu_{t+1} = \nu_t + \zeta_t, \quad \zeta_t \sim \mathcal{N}(0, \sigma^2_\zeta)$$ 
+% slope: random walk + noise \zeta_t
+
+$$y_t= \mu_t+\epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma^2_\epsilon)$$ 
+% observation equation
