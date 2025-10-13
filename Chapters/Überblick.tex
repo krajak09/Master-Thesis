@@ -73,6 +73,47 @@
 % Meeting 19. August 2025
 %------------------------------------------------------------------------------
 
-Random walk = a type of system model.
+% Random walk = a type of system model.
 
-Kalman filter = an algorithm that can estimate the hidden states of such a system, even when measurements are noisy.
+% Kalman filter = an algorithm that can estimate the hidden states of such a system, even when measurements are noisy.
+
+%------------------------------------------------------------------------------
+% Meeting 6. Oktober 2025
+%------------------------------------------------------------------------------
+
+% letzte Data vom Trainingssatz nehmen -> für den Anfang vom Testset
+% gefiltertes nahe bei den testdaten, weil Varianz von observation noise so tief ist gefittet worden, kann es fast exakt filtern (mehr oder weniger), observation folgen dann also exakt der Kurve. D.h. Model ist genug flexibel, dass es mit der dynamischen Gleichung all die Bewegungen erklären kann. Darum wählt es einen kleinen Wert für Noise. Nehmen wir z.B. an man hätte ein weniger flexibles Model, eins wo nur sehr langsam den Kurs verändern könnte oder so. Nehmen wir an es wäre ein lineares Model, es wäre nur eine Linie. Dann müsste all die Variation von der Observation noise kommen. In diesem Fall könne wir das ganze durch einen Random Walk erklären. Fürs filtern ist es deshalb nicht so erstaunlich, dass es genau gleich ist. Filtern ist der estimate vom state nachdem ich es gesehen habe. 
+
+% wenn ich weiss, dass ich nur observation error habe, dann ist der beste guess für den state, wenn ich observation gemacht habe es gleich observation zu setzen. darum folgt das gefilterte genau dem gemessenenem. Das heisst nicht, dass meine predictions perfekt sind, weil predictions hängen davon ab wie gut ich voraussagen kann. Darum liegen sie auch leicht falsch. Wenn die Messung genau ist, dann kann man für das gefilterte genau das nehmen, wo man beobachtet hat. 
+
+% Intepretation: hat state gefiltert und jetzt predictet es für den nächsten state genau das gleiche, weil der process noise klein gefittet worden ist. der mse ist gross, wenn ich immer den gleichen state nehme wie den nächsten, ist der Fehler gross. 
+% Ausprobieren, wenn mer grossen prozess noise nimmt, ob prediction dann random sind oder nicht. 0.2 varianz
+
+% bei measurement tut es den noise nicht dazuzählen, darum ist es genau gleich. wenn man den nächsten Wert aus der Dynamik simulieren würde, dann hätte ich einen zufälligen noise Term dabei. 
+
+% observation genau gleich wie state, weil H = 1 (30)
+
+% Prediction ist $p(y_t | x_{1:t-1}) \sim y^\sim_t$ eine Verteilung
+
+% Hier nehmen wir den Mittelwert. Prediction ist nicht sample von dieser Verteilung sondert Erwartungswert. Und weil der Random Walk symmetrisch ist, ist es der Erwartungswert gleich wie der gefilterte Wert. (nicht erwartet) wegen Kalman Filter, predicten ist immer im Mittelwert. 
+
+% Interpretation: wenn das observed werte sind, sind beim random walk, sofern der gefilterte wert genau beim observed wert ist, dann ist der estimate für den Erwartungswert von $p(x_t |x_{1:t-1})$. das ist das gefilterte. und prediction beim random walk model ist genau das gleiche. weil wenn ich einen schritt mache, ändere ich nicht den erwartungswert. Der mittelwert bleibt genau gleich. Benutze für den nächsten wert den jetztigen state. Durch das filtern beobachte ich das und dann sage ich das wäre der richtige wert gewesen. 
+
+% Beim trend model hat man nicht nur random walk sondern auch noch einen trend. Für prediction den jetzigen wert und den trend nehmen. Versetzt um den Trend. 
+
+% Wie würde ich alle Zukunft vorausschauen? Im Random Walk: Prediction für Zukunft wäre eine Gerade -> genau der gleiche Wert. Erwartungswert in der Zukunft bleibt genau gleich. 
+% Im Trendmodel, habe ich einen Trend estimated und bei prediction gehe ich in der Zukunft genau mit diesem Trend weiter. Bei jedem Zeitschritt passe ich den basiswert und den Trend an. Beim Random Walk model nur Basiswert anpassen. 
+
+% prediction: mittelwert von predictive Verteilung nehmen, das macht auch Sinn, weil es der Wert ist, den der mean square error am kleinsten macht. 
+% wenn ich eine Verteilung durch eine Zahl abschätzen muss, dann ist der Erwartungswert diese Zahl, wo im Schnitt den squared error am kleinsten macht. Zahl, wo das minimiert, ist 
+% Erwartungswert ist die Zahl, das wenn ich über lange Zeit meine Zufallsvariable mit dieser Zahl abschätze, mache ich am wenigsten squared error. Darum macht es auch Sinn, das wenn man den Mean Squared Error von den Predictions minimieren möchte, das man den Erwartungswert nimmt von der Verteilung als prediction. das wo man im Schnitt bekommen würde. wenn man andere distanz hätte, wo man minimieren möchte, müsste man eine andere Zahl nehmen wo nicht unbedingt erwartungswert ist zb absolute error minimieren, dann ... im Fall der Normalverteilung ist es gleich
+
+% für prediction muss man eine Zahl wählen, und man hat nur die Verteilung gegeben. Dann fasst man die Verteilung zu einer Zahl zusammen und der Erwartungswert macht hier Sinn. Weil Erwartungswert von einem Random Walk ist Null. 
+
+% y_train sollte erste Anfangsindize sein. 
+
+% gefilterte kovarianz ist das was das model updated. Wahl von P0 spielt wahrscheinlich keine grosse Rolle. 
+
+% Trend Model: im ein dim beispiel ist cov einfach var die man beobachtet. im zweidim schwieriger, darum ist filtern keine schlechte Idee. die ersten 100 observations nehmen, filtern und dann letzte gefilterte cov nehmen. wichtig, beim fitten immer das gleiche sein. 
+
+% Raus finden ob es stimmt, immer zu jedem Zeitpunkt den Trend rausfinden und den dazuzählen, das sollte genau prediction geben. aufschreiben, was genau state wäre wo man predicted. im Fall von random walk $y^_{t+1} = \mathbb{E}[p(y_t|y_{1:t})]$
