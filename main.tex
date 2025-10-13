@@ -2,33 +2,26 @@
 %	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
 %----------------------------------------------------------------------------------------
 
-\documentclass{article}
+\documentclass[twoside]{article}
 
 \usepackage{graphicx} % Required for inserting images
 \usepackage[english]{babel} % Dictionary
 
-\usepackage{amsmath} % Math writing
-\usepackage{amssymb} % Math symbols
-
-\usepackage{csquotes} % cite a source
-
-\usepackage{amsthm} % Theoremstyle
+\usepackage{amsmath, amssymb, amsmath, amsthm} % Math 
 
 \usepackage{enumitem} % lists
 \usepackage{pifont} % for special lists
 
-
 \usepackage{graphicx} % Graphics
 \usepackage{float} % insert images fluently
-
-\usepackage{geometry} % margin settings
 
 \usepackage{changes} % to mark changes in the text
 \usepackage{soul} % to mark changes in the text
 
-\usepackage{enumitem}
+\usepackage{csquotes} % cite a source
+\usepackage{ifoddpage} % for \checkoddpage and \ifoddpage
 
-%----------------------------------------------------------------------------------------
+%---------------------------------------------------------------------------------------
 %	MARGIN SETTINGS
 %----------------------------------------------------------------------------------------
 
@@ -39,14 +32,18 @@
 % 	bindingoffset=.5cm, % Binding offset
 % 	top=1.5cm, % Top margin
 % 	bottom=1.5cm, % Bottom margin
-% 	%showframe, % Uncomment to show how the type block is set on the page
+% 	showframe, % Uncomment to show how the type block is set on the page
 % }
+
+\usepackage{setspace}
+\usepackage{geometry} % margin settings
+\geometry{a4paper, margin=2.5cm}
 
 % Bibliography
 \usepackage[
-backend = biber, 
-style = numeric, 
-sorting = nty 
+    backend = biber, 
+    style = numeric, 
+    sorting = nty 
 ]{biblatex}
 \addbibresource{references.bib} %adds the source file
 % backend = biber sorts the bibliography
@@ -55,8 +52,9 @@ sorting = nty
 \bibliography{plain}
 \bibliography{ref}
 
-
-% Theoremstyle
+%----------------------------------------------------------------------------------------
+% Theorems
+%----------------------------------------------------------------------------------------
 \theoremstyle{plain} % boldface title, italicized body
 \newtheorem{theorem}{Theorem}[section]
 
@@ -73,7 +71,7 @@ sorting = nty
 \newtheorem*{remark}{Remark}
 
 %----------------------------------------------------------------------------------------
-%   NEW COMMANDS
+% Shortcuts
 %----------------------------------------------------------------------------------------
 
 \newcommand*\N{\mathbb{N}}
@@ -84,48 +82,81 @@ sorting = nty
 \newcommand*\x{\mathbf{x}}
 \newcommand*\y{\mathbf{y}}
 
+\newcommand{\cmmnt}[1]{}
 %----------------------------------------------------------------------------------------
-
-\title{Master Thesis}
-\author{Keerthiga Rajakumar}
-\date{\today}
-
+% Title Page
+%----------------------------------------------------------------------------------------
 \begin{document}
 
-\pagenumbering{gobble} % no page numbering
+\begin{titlepage}
+    \centering
+    \includegraphics[width=0.3\textwidth]{Figures/Uni_Zuerich_Siegel.svg.png}\par\vspace{1cm}
+    {\scshape\LARGE University of Zurich \par}
+    \vspace{1.5cm}
+    {\huge\bfseries Master Thesis \par}
+    \vspace{1cm}
+    {\Large Title Thesis \par}
+    \vspace{2cm}
+    {\large Author: Keerthiga Rajakumar \par}
+    \vspace{0.5cm}
+    {\large Supervisor: Marius Furter \par}
+    \vfill
+    {\large \today\par}
+    \date{\today}
 
-\maketitle
-\newpage
+\end{titlepage}
 
-\tableofcontents % table of contents
 
-\newpage
+% Front  
+\pagenumbering{roman}
+\tableofcontents
+\cleardoublepage
 
-\pagenumbering{arabic} % style of the page numbering, can be arabic, alph, Alph, roman, Roman
-\setcounter{page}{1} % set the page counter to 1
+
+% Main 
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+%----------------------------------------------------------------------------------------
+%\singlespacing
 
 \section{Basic Probability}
 \input{Chapters/Basic Probability.tex}
+%\cleardoublepage
+
 
 \newpage
 \section{Bayesian filtering equations and exact solutions}
 \input{Chapters/Bayesian filtering equations and exact solutions.tex}
+%\cleardoublepage
+
 
 \newpage
 \section{Kalman filter}
 \input{Chapters/Kalman filter}
+%\cleardoublepage
+
 
 \newpage
 \section{Parameter Estimation}
 \input{Chapters/Parameter Estimation}
+%\cleardoublepage
+
 
 \newpage
 \section{Portfolio Optimization}
 \input{Chapters/Portfolio Optimization}
+%\cleardoublepage
+
 
 \newpage
 \section*{Codes and Explanation}
 \input{Chapters/Codes and Explanation}
+%\cleardoublepage
+
+
+% References 
+% \printbibliography
 
 \end{document}
 

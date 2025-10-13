@@ -110,7 +110,7 @@ where
 \begin{itemize}
     \item $\textbf{x}_t$ is the state at time step $t$,
     \item $\textbf{A}$ is a matrix that describes how position and velocity are updated, 
-    \item $\mathbf{q}_{t-1}$ represents small random measurement noise and is modeled as Gaussian, i.e. $\mathbf{q}_{t-1} \sim \mathcal{N}(0, \mathbf{Q})$. In our example, this would be a wind pushing the drone off course. 
+    \item $\mathbf{q}_{t-1}$ represents small process noise and is modeled as Gaussian, i.e. $\mathbf{q}_{t-1} \sim \mathcal{N}(0, \mathbf{Q})$. In our example, this would be a wind pushing the drone off course. 
 \end{itemize}
 
 In our example, this noise can affect either the position or the velocity. It can also affect both but we'll concentrate on these two cases. In the following, we will take a closer look at both cases. 
