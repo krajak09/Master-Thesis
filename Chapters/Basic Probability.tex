@@ -1,7 +1,63 @@
-\begin{itemize}
-    \item Conditional probability distribution % Kalman Filter
-    \item Gaussian random walk
-\end{itemize}
+% \subsection{Gaussian properties}
+% \begin{itemize}
+%     \item Conditional probability distribution % Kalman Filter
+%     \item conditional independence
+%     \item marginalization
+%     \item Example for probabilistic state space model: Gaussian random walk
+% \end{itemize}
+
+\subsection{Gaussian distribution properties}
+\textcolor{orange}{some introductory sentences}
+
+\subsection*{The One-Dimensional Gaussian}
+% mean
+% variance - standard deviations
+% random variable 
+% probability distribution
+% expected value of a random variable
+
+\textcolor{orange}{graph of Gaussian distribution}
+%  The Gaussian distribution above models the distribution of the measured automobile speeds, but being a model it is necessarily imperfect. The difference between model and reality will come up again and again in these filters. Gaussians are used in many branches of mathematics, not because they perfectly model reality, but because they are easier to use than any other relatively accurate choice. However, even in this book Gaussians will fail to model reality, forcing us to use computationally expensive alternatives.
+Basic definition of univariate Gaussian: A random variable $X \in \mathbb{R}$ follows a Gaussian distribution with mean $\mu$ and variance $\sigma^2$, denoted
+\begin{equation}
+    x \sim \mathcal{N}(\mu, \sigma^2).
+\end{equation}
+
+It's probability density function is then
+
+\begin{equation}
+    p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\!\left(-\frac{(x - \mu)^2}{2\sigma^2}\right).
+\end{equation}
+
+The mean $\mu$ gives the center of the distribution, while the variance $\sigma^2$ measures how uncertain, i.e.~ how spread out the variable is. Roughly 68\% of the probability mass lies within one standard deviation $(\pm \sigma)$ of the mean and 95\% within two.
+
+
+
+\subsection*{The Multivariate Gaussian}
+Basic definition of multivariate Gaussian: A random variable $\mathbf{X} \in \mathbb{R}^n$ follows a multivariate Gaussian distribution with mean vector $\mathbf{\mu}$ and covariance matrix $\mathbb{\Sigma}^2$, denoted
+\begin{equation}
+    \mathbf{X} \sim \mathcal{N}(\mathbb{\mu}, \mathbb{\Sigma^2}).
+\end{equation}
+
+It's probability density function is then
+
+\begin{equation}
+    p(\mathbf{x}) = \frac{1}{(2\pi)^{n/2}|\boldsymbol{\Sigma}|^{1/2}}
+    \exp\left(-\frac{1}{2}(\mathbf{x} - \boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1}(\mathbf{x} - \boldsymbol{\mu})\right)
+\end{equation}
+
+where $|\boldsymbol{\Sigma}|$ denotes the determinant of $\boldsymbol{\Sigma}$.
+
+\subsection*{Product of Gaussians}
+result by multiplying the equation for two Gaussians together and combining terms. But derive it by using Bayes theorem. Problem: let the prior be $N(\bar{\mu}, \bar{\sigma}^2)$ and measurement be $z \propto N(z, \sigma^2_z)$
+
+\subsection*{Affine transformations}
+
+
+\subsection*{Marginal distributions}
+
+
+\subsection*{Conditional distributions}
 
 \subsection{Probabilistic state space models}
 % Definition is from the book Bayesian filtering and smoothing` by Simo Särkkä page 51.

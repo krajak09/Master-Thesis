@@ -117,3 +117,11 @@
 % Trend Model: im ein dim beispiel ist cov einfach var die man beobachtet. im zweidim schwieriger, darum ist filtern keine schlechte Idee. die ersten 100 observations nehmen, filtern und dann letzte gefilterte cov nehmen. wichtig, beim fitten immer das gleiche sein. 
 
 % Raus finden ob es stimmt, immer zu jedem Zeitpunkt den Trend rausfinden und den dazuzählen, das sollte genau prediction geben. aufschreiben, was genau state wäre wo man predicted. im Fall von random walk $y^_{t+1} = \mathbb{E}[p(y_t|y_{1:t})]$
+
+
+
+%\cite{https://medium.com/@vikramsetty169/the-bayes-filter-71f8b61afc1c}
+
+%3. Extended Kalman Filter: Of course, very few systems, if any, behave in a truly linear fashion, and thus, only limited systems can directly use a Kalman Filter representation. However, we can use Extended Kalman Filters EKFs) which use local linearization to approximate non-linear systems as linear ones, utilizing modified updation rules.
+
+%4. Particle Filters: To overcome the problems with high computation in discrete filters, we can use particle filters to represent possible beliefs as particles, each following motion, and sensor models and updating with every iteration. We also perform sampling every iteration utilizing a set of weights to ensure that we're only keeping track of highly probable particles and not erroneous ones. As we explore environments and perform actions like loop closure, the initially 'spread out' particles converge to smaller ranges of possible states. Particle filters can be visualized, as shown in the figure below.

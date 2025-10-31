@@ -21,6 +21,7 @@
 \usepackage{csquotes} % cite a source
 \usepackage{ifoddpage} % for \checkoddpage and \ifoddpage
 
+
 %---------------------------------------------------------------------------------------
 %	MARGIN SETTINGS
 %----------------------------------------------------------------------------------------
@@ -35,17 +36,30 @@
 % 	showframe, % Uncomment to show how the type block is set on the page
 % }
 
-\usepackage{setspace}
+
+\usepackage[singlespacing]{setspace}
+
 \usepackage{geometry} % margin settings
 \geometry{a4paper, margin=2.5cm}
+
+\usepackage[dvipsnames]{xcolor}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor = NavyBlue,
+    filecolor = NavyBlue,
+    urlcolor = NavyBlue,
+    citecolor = NavyBlue
+}
 
 % Bibliography
 \usepackage[
     backend = biber, 
-    style = numeric, 
+    style = alphabetic, 
     sorting = nty 
 ]{biblatex}
-\addbibresource{references.bib} %adds the source file
+\addbibresource{ref.bib} %adds the source file
 % backend = biber sorts the bibliography
 % style = numberic uses numbers for the sources, can also be alphabetic, authoryear, authortitle etc. 
 % sorting = nty sorts the sources by name, title, year, also possible nyt, nyvt (volume), none etc. for more information see overleaf documentation, Bibliography management in LaTeX
@@ -105,12 +119,13 @@
     \date{\today}
 
 \end{titlepage}
+%\cleardoublepage
 
 
 % Front  
 \pagenumbering{roman}
 \tableofcontents
-\cleardoublepage
+%\cleardoublepage
 
 
 % Main 
@@ -118,8 +133,9 @@
 \setcounter{page}{1}
 
 %----------------------------------------------------------------------------------------
-%\singlespacing
+\onehalfspacing
 
+\newpage
 \section{Basic Probability}
 \input{Chapters/Basic Probability.tex}
 %\cleardoublepage
@@ -136,6 +152,10 @@
 \input{Chapters/Kalman filter}
 %\cleardoublepage
 
+% \newpage
+% \section{Extended Kalman filter}
+% \input{Chapters/Kalman filter}
+% %\cleardoublepage
 
 \newpage
 \section{Parameter Estimation}
@@ -154,9 +174,7 @@
 \input{Chapters/Codes and Explanation}
 %\cleardoublepage
 
-
+\newpage
 % References 
-% \printbibliography
-
+\printbibliography
 \end{document}
-

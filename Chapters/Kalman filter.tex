@@ -1,31 +1,108 @@
 \subsection{The Kalman filter}
-A well-known Bayesian filter is the Kalman filter, which gives the closed form solution to the Bayesian filtering equations. It gives an efficient way to estimate the state of a linear system with Gaussian noise.
+A widely used Bayesian filter is the Kalman filter. It gives a closed form solution to the Bayesian filtering equations in the case of linear dynamics and Gaussian noise. So when a system evolves linearly in time and both process noise and measurement noise are Gaussian, the Kalman filter give an efficient recursive way to estimate the hidden state from noisy observations. 
 
 The Kalman filter model is given by:
 
 \begin{align}\label{eq:Kalman filter}
-    \mathbf{x}_k &= \mathbf{A}_{k-1}\mathbf{x}_{k-1}+\mathbf{q}_{k-1}, \nonumber\\
-    \mathbf{y}_k &= \mathbf{H}_k\mathbf{x}_k+\mathbf{r}_k
+    \mathbf{x}_t &= \mathbf{A}_{t-1}\mathbf{x}_{t-1}+\mathbf{q}_{t-1}, \nonumber\\
+    \mathbf{y}_t &= \mathbf{H}_t\mathbf{x}_t+\mathbf{r}_t
 \end{align}
 
 where 
 \begin{itemize}
-    \item $\mathbf{x}_k$ is the hidden state at time $k$,
-    \item $\mathbf{A}_{k-1}$ is the state transition matrix,
-    \item $\mathbf{q}_{k-1}$ represent the process noise (assumed to be Gaussian),
-    \item $\mathbf{y}_k$ is the measurement at time $k$,
-    \item $\mathbf{H}_k$ is the observation matrix, and
-    \item $\mathbf{r}_k$ is the measurement noise (also assumed to be Gaussian).
+    \item $\mathbf{x}_t\in\mathbb R^n$ is the hidden state at time $t$,
+    \item $\mathbf{A}_{t-1}\in\mathbb R^{n\times n}$ is the state transition matrix,
+    \item $\mathbf{q}_{t-1}\sim \mathcal N(\mathbf{0},\mathbf{Q}_{t-1})$ represent the process noise,
+    \item $\mathbf{y}_t\in\mathbb R^m$ is the measurement at time $t$,
+    \item $\mathbf{H}_t\in\mathbb R^{m\times n}$ is the observation matrix, and
+    \item $\mathbf{r}_t\sim \mathcal N(\mathbf{0},\mathbf{R}_t)$ is the measurement noise.
 \end{itemize}
 
-The filter operates in two steps:
-\begin{itemize}
-    \item \textbf{Prediction}: The current state is predicted using the system model.
+All matrices may be time-varying. This is the standard linear Gaussian state space model used in \cite{sarkka:bayesian_filtering}.\\
+
+
+\textbf{Recursive filtering steps}\\
+At each time step, the Kalman filter runs two things: predict and update. \\
+Let \(\mathbf{m}_{t-1}\) and \(\mathbf{P}_{t-1}\) denote the filtering mean and covariance at time \(t-1\). Then:
+
+\begin{enumerate}
+    \item \textbf{Prediction}: 
+    The prediction is 
+        \begin{align} 
+            \mathbf{m}_t^- &= \mathbf{A}_{t-1}\mathbf{m}_{t-1},\\ \mathbf{P}_t^- &= \mathbf{A}_{t-1}\mathbf{P}_{t-1}\mathbf{A}_{t-1}^\top + \mathbf{Q}_{t-1}. 
+        \end{align}
+    Here \(\mathbf{m}_t^-\) is the prior mean (before seeing \(\mathbf{y}_t\)) and \(\mathbf{P}_t^-\) is the prior covariance, our uncertainty about the state prediction.
     \item \textbf{Update (correction)}: This prediction is corrected using the new measurement.
+    Define the prediction error and its covariance 
+        \begin{align} 
+            \mathbf{v}_t &= \mathbf{y}_t - \mathbf{H}_t \mathbf{m}_t^-,\qquad \mathbf{S}_t = \mathbf{H}_t \mathbf{P}_t^- \mathbf{H}_t^\top + \mathbf{R}_t, 
+        \end{align} and the Kalman gain 
+        \begin{align} 
+            \mathbf{K}_t = \mathbf{P}_t^- \mathbf{H}_t^\top \mathbf{S}_t^{-1}. 
+        \end{align}
+    The update is 
+        \begin{align} 
+            \mathbf{m}_t &= \mathbf{m}_t^- + \mathbf{K}_t \mathbf{v}_t,\\ 
+            \mathbf{P}_t &= (\mathbf{I}-\mathbf{K}_t\mathbf{H}_t)\mathbf{P}_t^-(\mathbf{I}-\mathbf{K}_t\mathbf{H}_t)^\top + \mathbf{K}_t \mathbf{R}_t \mathbf{K}_t^\top.
+        \end{align}
+    The iterations begin from some prior $\textbf{m}_0, \textbf{P}_0$.
+\end{enumerate}
+
+
+This mix of prediction and update allows the filter to track the system’s state over time, even when the measurements are noisy.
+
+The Kalman filter assumes linear dynamics and Gaussian noises with known variances. The ratio between process noise $\mathbf{Q}$ and measurement noise is important. With very small measurement noise $\mathbf{R}$ the filter can overfit measurements. It overweights the observations and underweights the model dynamics. The filter appears to fit the data perfectly but loses predictive power because it treats random observation noise as real signal. While with very small process noise $\mathbf{Q}$ the filter may be too \textcolor{orange}{find correct word}. The filter becomes overconfident in its model dynamics and underweights new measurements. The estimated states change only slowly and may lag behind the true process. Especially when the underlying system evolves faster than expected. % Intuitive it means that the filter trusts its model too much and ignores the measurements. The state estimate reacts slowly to new data. % for the example, if Q is large, the filter assumes the object can move unpredictably; it follows the data closely, if Q is very small the filter assumes smooth movements; it barely updates when the object suddendly turns. 
+This behaviour shows the importance of correctly identifying ratio between process and measurement noise variances. 
+
+
+\begin{theorem}[Kalman filter]
+The Bayesian filtering equations for the linear filtering model \eqref{eq:Kalman filter} can be evaluated in closed form and the resulting distributions are Gaussian:    
+
+\begin{align}\label{eq:Kalman filter distributions}
+    p(\mathbf{x}_t\mid\mathbf{y}_{1:t-1})&= N(\mathbf{x}_t\mid\mathbf{m}_t^-,\mathbf{P}_t^-),\nonumber \\
+    p(\mathbf{x}_t\mid\mathbf{y}_t)&= N(\mathbf{x}_t\mid\mathbf{m}_t,\mathbf{P}_t),\nonumber \\
+    p(\mathbf{y}_t\mid\mathbf{y}_{1:t-1})&= N(\mathbf{y}_t\mid\mathbf{H}_t\mathbf{m}_t^-,\mathbf{S}_t).
+\end{align}
+The parameters of the distributions above can be computed with the following Kalman filter prediction and update steps.
+
+\begin{itemize}
+    \item The prediction step is
+    \begin{align}
+        \mathbf{m}_t^- &= \mathbf{A}_{t-1}\mathbf{m}_{t-1}, \nonumber\\
+        \mathbf{P}_t^- &= \mathbf{A}_{t-1}\mathbf{P}_{t-1}\mathbf{A}_{t-1}^\top + \mathbf{Q}_{t-1}
+    \end{align}
+
+    \item The update step is
+    \begin{align}
+        \mathbf{v}_t &= \mathbf{y}_t - \mathbf{H}_t\mathbf{m}_t^- \nonumber\\
+        \mathbf{S}_t &= \mathbf{H}_t\mathbf{P}_t^-\mathbf{H}_{t}^\top + \mathbf{R}_t \nonumber\\
+        \mathbf{K}_t &= \mathbf{P}_t^-\mathbf{H}_t^\top\mathbf{S}_t^{-1} \nonumber\\
+        \mathbf{m}_t &= \mathbf{m}_t^- + \mathbf{K}_t\mathbf{v}_t \nonumber\\
+        \mathbf{P}_t &= \mathbf{P}_t^- - \mathbf{K}_t\mathbf{S}_t \mathbf{K}_t^\top
+    \end{align}
 \end{itemize}
 
-This mix of predicting and updating helps the filter follow the system’s state over time, even when the measurements are noisy.
+The recursion is initiated from the prior mean $\mathbf{m}_0$ and covariance $\mathbf{P}_0$.
+\end{theorem}
 
+\begin{proof}
+For the proof, check pages 57 and 58 in the book `Bayesian filtering and smoothing' by Simo Särkkä. 
+\end{proof}
+
+
+% what is a Kalman Filter and its meaning, applications, why relevant in my thesis; mathematical background, state space representation, Gaussian noise assumptions, recursive Bayesian estimation (predict-update cycle), introduce predition and update step, covariance matrices
+The Kalman filter is important because it is used to estimate and predict hidden states in time series models. The data can be noisy and the filter helps to combine the information from the model and the observations in a optimal way. It's useful for studying financial and economic data, where we want to follow smooth trends and understand uncertainty in the predictions \cite{palomar:portfolio_optimization}. However it works under two main assumptions. That the system is linear and the noise is Gaussian. These assumptions make the filter easy to use but it also comes with limitations. If the system behaves in a non-linear way or if the noise is not Gaussian, the filter doesn't work. 
+To handle such cases there are extension like Extended Kalman Filter (EKF) and the Unscented Kalman Filter (UKF). These methods follow the same idea but can deal better with non-linear models \cite[Chapter X]{sarkka:bayesian_filtering}.
+
+% derivation of the Kalman Fitler Equations, present the KF algorithm step-by-step
+
+% discussion of assumptions and limitations
+
+% application to my thesis
+
+% conclusion?
+
+\subsection{Application}
 The Kalman filter is widely used in various fields, including:
 \begin{itemize}
     \item \textbf{Navigation}: Tracking planes, ships, and spacecraft
@@ -38,56 +115,8 @@ The Kalman filter is widely used in various fields, including:
 % These methods are used in fields such as navigation, aerospace, space engineering, telecommunications, remote sensing, audio signal processing, control systems, and financial modeling, where the accurate estimation of dynamic system variables, either in real time or retrospectively, is important. 
 % \\
 
-\begin{theorem}[Kalman filter]
-The Bayesian filtering equations for the linear filtering model \eqref{eq:Kalman filter} can be evaluated in closed form and the resulting distributions are Gaussian:    
 
-\begin{align}\label{eq:Kalman filter distributions}
-    p(\mathbf{x}_k\mid\mathbf{y}_{1:k-1})&= N(\mathbf{x}_k\mid\mathbf{m}_k^-,\mathbf{P}_k^-),\nonumber \\
-    p(\mathbf{x}_k\mid\mathbf{y}_k)&= N(\mathbf{x}_k\mid\mathbf{m}_k,\mathbf{P}_k),\nonumber \\
-    p(\mathbf{y}_k\mid\mathbf{y}_{1:k-1})&= N(\mathbf{y}_k\mid\mathbf{H}_k\mathbf{m}_k^-,\mathbf{S}_k).
-\end{align}
-The parameters of the distributions above can be computed with the following Kalman filter prediction and update steps.
-
-\begin{itemize}
-    \item The prediction step is
-    \begin{align}
-        \mathbf{m}_k^- &= \mathbf{A}_{k-1}\mathbf{m}_{k-1}, \nonumber\\
-        \mathbf{P}_k^- &= \mathbf{A}_{k-1}\mathbf{P}_{k-1}\mathbf{A}_{k-1}^\top + \mathbf{Q}_{k-1}
-    \end{align}
-
-    \item The update step is
-    \begin{align}
-        \mathbf{v}_k &= \mathbf{y}_k - \mathbf{H}_k\mathbf{m}_k^- \nonumber\\
-        \mathbf{S}_k &= \mathbf{H}_k\mathbf{P}_k^-\mathbf{H}_{k}^\top + \mathbf{R}_k \nonumber\\
-        \mathbf{K}_k &= \mathbf{P}_k^-\mathbf{H}_k^\top\mathbf{S}_k^{-1} \nonumber\\
-        \mathbf{m}_k &= \mathbf{m}_k^- + \mathbf{K}_k\mathbf{v}_k \nonumber\\
-        \mathbf{P}_k &= \mathbf{P}_k^- - \mathbf{K}_k\mathbf{S}_k \mathbf{K}_k^\top
-    \end{align}
-\end{itemize}
-
-The recursion is started from the prior mean $\mathbf{m}_0$ and covariance $\mathbf{P}_0$.
-\end{theorem}
-
-\begin{proof}
-For the proof, check pages 57 and 58 in the book `Bayesian filtering and smoothing' by Simo Särkkä. 
-\end{proof}
-
-
-
-% what is a Kalman Filter and its meaning, applications, why relevant in my thesis
-
-% mathematical background, state space representation, Gaussian noise assumptions, recursive Bayesian estimation (predict-update cycle), introduce predition and update step, covariance matrices
-
-% derivation of the Kalman Fitler Equations, present the KF algorithm step-by-step
-
-% discussion of assumptions and limitations
-
-% application to my thesis
-
-% conclusion?
-
-
-
+Limitation: 
 
 
 
