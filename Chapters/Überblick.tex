@@ -125,3 +125,44 @@
 %3. Extended Kalman Filter: Of course, very few systems, if any, behave in a truly linear fashion, and thus, only limited systems can directly use a Kalman Filter representation. However, we can use Extended Kalman Filters EKFs) which use local linearization to approximate non-linear systems as linear ones, utilizing modified updation rules.
 
 %4. Particle Filters: To overcome the problems with high computation in discrete filters, we can use particle filters to represent possible beliefs as particles, each following motion, and sensor models and updating with every iteration. We also perform sampling every iteration utilizing a set of weights to ensure that we're only keeping track of highly probable particles and not erroneous ones. As we explore environments and perform actions like loop closure, the initially 'spread out' particles converge to smaller ranges of possible states. Particle filters can be visualized, as shown in the figure below.
+
+proof Kalman Filter: 
+
+$x_{t+1} = Ax_t+q = p(x_{t+1}\mid x_t), \quad \mathcal{N}(0, Q)$
+$y_t = Hx_t+r = p(y_t\mid x_t), \quad \mathcal{N}(0, R)$
+
+predict: $x_t \sim \mathcal{N}(m_t,P_t) \rightarrow$ affine transformation and sum of independent Gaussians
+
+$x_t \sim \mathcal{N}(\mu_x,\Sigma_x)$
+$y_t \sim \mathcal{N}(\mu_y,\Sigma_y)$
+$x_t + y_t\sim \mathcal{N}(\mu_x+ \mu_y,\Sigma_x+\Sigma_y)$
+$\rightarrow$
+$x_{t+1} \sim \mathcal{N}(Am_t, APA^\top+Q)$
+
+update: $p(x_t\mid y_{1:t-1})$ copy $p(\begin{pmatrix}
+    x_t \\ x_t
+\end{pmatrix}\mid y_{1:t-1}) \sim \mathcal{N}(\begin{pmatrix}
+    m_t \\ m_t
+\end{pmatrix}, \begin{pmatrix}
+    P_t & 0 \\ 0 & P_t
+\end{pmatrix})$ transform $p(\begin{pmatrix}
+    x_t \\ y_t
+\end{pmatrix}\mid y_{1:t-1}) \sim \mathcal{N}(H'm'_t, H'P_tH'^\top + R') = \mathcal{N}(\begin{pmatrix}
+    1 & 0 \\ 0 & H
+\end{pmatrix} \begin{pmatrix}
+    m_t \\ m_t
+\end{pmatrix}), \begin{pmatrix}
+    1 & 0 \\ 0 & H
+\end{pmatrix}\begin{pmatrix}
+    P_t & 0 \\ 0 & P_t
+\end{pmatrix}\begin{pmatrix}
+    1 & 0 \\ 0 & H'^\top
+\end{pmatrix}+\begin{pmatrix}
+    0 & 0 \\ 0 & R
+\end{pmatrix} = \mathcal{N}(\begin{pmatrix}
+    m_t \\ Hm_t
+\end{pmatrix}, \begin{pmatrix}
+    P_t & 0 \\ 0 & HP_tH'^\top+R
+\end{pmatrix})$
+
+condition: $p(x_t \mid y_{1:t-1}, y_t)= \mathcal{N}(m_t+(HP_tH^\top)^{-1}(y_t-Hm_t), P_t-(HP_tH^\top+R)^{-1})$

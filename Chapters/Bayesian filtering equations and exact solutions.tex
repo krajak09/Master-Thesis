@@ -1,7 +1,7 @@
 \subsection{Introduction to Bayesian filtering}
-Bayesian filtering provides a structured way to estimate the state of a system that changes over time and can only be observed through noisy data. The system’s state typically consists of time-dependent variables that describe its condition at each point in time. However, measurements are often inaccurate because of noise, which creates uncertainty. On top of that, the system’s behavior over time can be affected by random changes or errors in the model, known as process noise.
+Bayesian filtering provides a structured way to estimate the state of a system that changes over time and can only be observed through noisy data. The system’s state typically consists of time-dependent variables that describe its condition at each point in time. However, measurements are often inaccurate because of noise, which creates uncertainty. On top of that, the system’s behavior can be affected by random changes or errors in the model, known as process noise.
 \\
-Bayesian filtering uses all observations up to the current time to estimate the system’s current state. Bayesian smoothing goes a step further by also using future observations to get better estimates of past states. Both filtering and smoothing are key tools in time series analysis and are used in many different fields. The following sections introduce the principles of Bayesian inference and show how they lead to the recursive Bayesian filtering equations.
+Bayesian filtering uses all observations up to the present to estimate the system’s current state. Bayesian smoothing goes one step further by also using current observations to better estimate past states. Both filtering and smoothing are key tools in time series analysis and are used in many different fields. The following sections introduce the principles of Bayesian inference and show how they lead to the recursive Bayesian filtering equations.
 
 
 % More generally, Bayesian filtering uses a set of recursive equations that work for both simple (linear-Gaussian) and more complex (nonlinear or non-Gaussian) models. The filtering process has two main steps:
@@ -11,40 +11,37 @@ Bayesian filtering uses all observations up to the current time to estimate the 
 % \end{itemize}
 
 \subsection{Bayesian inference} % placement to be determine
-Bayesian inference is a \textcolor{orange}{important?} idea: it turns learning into a process of updating probabilities. Every time new data arrive, the prior belief becomes the new posterior, which then serves as the prior for the next update. This recursive idea is the foundation of Bayesian filtering, where we use new sensor data to continuously improve our estimates of a system’s changing state.
-The idea: Bayesian inference provides a formal framework for updating our beliefs as new evidence becomes available. Answers an intuitive question: "Given what I already know and what I have just observed, what should I now believe?" This process is how we naturally \textcolor{orange}{learn}. 
+Bayesian inference represents beliefs as probability distributions and turns learning into a process of updating probabilities. Every time new data arrive, the prior belief becomes the new posterior, which then serves as the prior for the next update. This recursive idea forms the foundation of Bayesian filtering, where we use new sensor data to continuously improve our estimates of a system’s changing state.
+The idea: Bayesian inference provides a formal framework for updating our beliefs as new evidence becomes available. Answers an intuitive question: ``Given what I already know and what I have just observed, what should I now believe?'' This process is how we naturally learn. 
 
 \begin{example}
 \begin{enumerate}
-    \item \textbf{Prior Belief}: Let's look at a self-driving car navigating through a city. Its internal map (prior knowledge) tells the car that the upcoming road is a straight two-lane highway.Its prior belief is that it should stay in its lane and maintain speed. 
+    \item \textbf{Prior Belief}: Let's look at a self-driving car navigating through a city. Its internal map (prior knowledge) tells the car that the upcoming road is a straight two-lane highway. Its prior belief is that it should stay in its lane and maintain speed. 
     \item \textbf{New Evidence}: Suddenly, the car's sensors, e.g., the cameras, detect a large stationary object in its lane about 100 meters ahead. This is the new data. The likelihood function \textcolor{orange}{evaluates} this new evidence: "What is the probability of seeing this sensor reading if the road is clear (very low) and what is the probability if there is a real obstacle (very high)?" 
     \item \textbf{Updated Belief}: The car combines its initial map knowledge with the new sensor data. This results in a new updated belief. The prior belief of a clear road is replaced by the posterior belief of an obstructed road, triggering an immediate action. Based on this, the car makes a decision to slow down and safely change lanes. 
 \end{enumerate}
 \end{example}
-Bayesian inference formalizes this intuitive process of learning using probability to represent uncertainty. 
-
-An important tool for this framework is Bayes' Theorem. It provides a simple formula to update probabilities. The Theorem is: 
+Bayesian inference formalizes this intuitive process of learning using Bayes' Theorem to update probabilities:
 \[P(\theta \mid D) = \frac{P(D\mid \theta) \cdot P(\theta)}{P(D)}\]
 
-Let's look at each component: 
+Let's look at each component in turn: 
 \begin{enumerate}
-    \item \textbf{Posterior Probability $P(\theta \mid D)$}: This is what we want to compute with the Bayesian analysis. It represents our updated belief about the parameter $\theta$ after seeing the data $D$. It answers the question: "How probable are the values of $\theta$ after seeing the new evidence?"
-    \item \textbf{\textcolor{orange}{Likelihood} $P(D \mid \theta)$}: The likelihood expresses how probable the observed data $D$ is, assuming a specific value of the parameter $\theta$. The question it answers is "How likely is it to observe this data if the parameter takes a particular value?"
-    \item \textbf{\textcolor{orange}{Prior Probability} $P(\theta)$}: This term shows our belief about $\theta$ before we see the data $D$. If we have little prior information, we can use a vague prior.
-    \item \textbf{Marginal Likelihood $P(D)$}: This is the total probability of the data under all possible values of $\theta$. It acts as a normalizing constant that ensures the posterior distribution is a valid probability distribution, i.e., it sums (discrete case) or integrates (continuous case) to 1. \textcolor{orange}{In practice, it can be computationally challenging to calculate, but for many applications, it is treated as a scaling factor}. 
+    \item \textbf{Posterior Probability $P(\theta \mid D)$}: This is the target quantity we want to compute in the Bayesian analysis. It represents our updated belief about the parameter $\theta$ after seeing the data $D$. It answers the question: ``How probable are the values of $\theta$ after seeing the new evidence?''
+    \item \textbf{\textcolor{orange}{Likelihood} $P(D \mid \theta)$}: The likelihood expresses how probable the observed data $D$ is, assuming a specific value of the parameter $\theta$. The question it answers is ``How likely is it to observe this data if the parameter takes a particular value?''
+    \item \textbf{\textcolor{orange}{Prior Probability} $P(\theta)$}: This term represents our belief about $\theta$ before we see the data $D$. If we have little prior information, we can use a vague prior.
+    \item \textbf{Marginal Likelihood $P(D)$}: This is the total probability of the data under all possible values of $\theta$. It acts as a normalizing constant that ensures the posterior distribution is a valid probability distribution. It sums (discrete case) or integrates (continuous case) to 1. \textcolor{orange}{In practice, it can be computationally challenging to calculate, but for many applications, it is treated as a scaling factor}. 
 \end{enumerate}
 
-A more intuitive way to write the theorem is: 
+We can write Bayes' Theorem in the following intuitive way: 
+\[\text{Posterior} \propto \text{ Likelihood } \times \text{ Prior} \]
 
-\[\text{Posterior} \propto \text{Likelihood } \times \text{ Prior} \]
-
-The symbol $\propto$ means "is proportional to". This tells us that our updated belief (the posterior) is a combination of what we thought before (the prior) and what the data is \textcolor{orange}{telling} us (the likelihood)
+The symbol $\propto$ means ``is proportional to''. This tells us that our updated belief (the posterior) is a combination of what we thought before (the prior) and what the data is \textcolor{orange}{telling} us (the likelihood)
 
 \hl{Example: ...}
 
 
 \subsection{Bayesian filtering equations}
-In a probabilistic state space model, $\{\mathbf{x}_t\}_{t \geq 0}$ denote the sequence of hidden states and let $\{y_t\}_{t \geq 1}$ denote the sequence of observed measurements. The model is defined by: 
+In a probabilistic state space model, let $\{\mathbf{x}_t\}_{t \geq 0}$ denote the sequence of hidden states and let $\{\mathbf{y}_t\}_{t \geq 1}$ denote the sequence of observed measurements. Then the model is defined by: 
 
 \begin{itemize}
     \item The \textbf{initial distribution} $p(\mathbf{x}_0)$,
@@ -57,12 +54,12 @@ Given a sequence of observations $\mathbf{y}_{1:t} = \{\mathbf{y}_1, \ldots, \ma
 p(\mathbf{x}_t \mid \mathbf{y}_{1:t}).
 \]
 
-Bayes filtering applies Bayes' theorem recursively over time within a state space model, allowing us to estimate evolving system states as new data become available.
+Bayesian filtering applies Bayes' theorem recursively over time within a state space model, allowing us to estimate evolving system states as new data become available.
 
-The following theorem is taken from \cite[Thm.~X]{sarkka:bayesian_filtering}.
+%The following theorem is taken from \cite[Thm.~X]{sarkka:bayesian_filtering}.
 
 \begin{theorem}[Bayesian filtering equations, \cite{sarkka:bayesian_filtering} Thm.~X]
-The recursive equations (the Bayesian filter) for computing the predicted distribution $p(\mathbf{x}_t \mid \mathbf{y}_{1:t-1})$ and the filtering distribution $p(\mathbf{x}_t \mid \mathbf{y}_{1:t})$ at the time step $t$ are given by the following Bayesian filtering equations.
+The recursive equations (the Bayesian filter) for computing the predictive distribution $p(\mathbf{x}_t \mid \mathbf{y}_{1:t-1})$ and the filtering distribution $p(\mathbf{x}_t \mid \mathbf{y}_{1:t})$ at the time step $t$ are given by the following Bayesian filtering equations.
 \begin{itemize}
     \item \textbf{Initialization} The recursion starts from the prior distribution $p(\mathbf{x}_0)$.
     \item \textbf{Prediction step} The predictive distribution of the state $\mathbf{x}_t$ at the time $t$, given the dynamic model, can be computed by the Chapman-Kolmogorov equation
@@ -70,18 +67,18 @@ The recursive equations (the Bayesian filter) for computing the predicted distri
     \item \textbf{Update step} Given the measurement $\mathbf{y}_t$ at time step $t$ the posterior distribution of the state $\mathbf{x}_t$ can be computed by Bayes' rule
     \[p(\mathbf{x}_t\mid \mathbf{y}_{1:t}) = \frac{1}{Z_t}\textbf{ }p(\mathbf{y}_t \mid \mathbf{x}_t)\textbf{ }p(\mathbf{x}_t\mid \mathbf{y}_{1:t-1}),\]
     where the normalization constant $Z_t$ is given as 
-    \[Z_t = \int p(\mathbf{y}_t \mid \mathbf{x}_t) \textbf{ }p(\mathbf{x}_t\mid \mathbf{y}_{1:t-1}) \textbf{ }d\mathbf{x}_t\]
+    \[Z_t = \int p(\mathbf{y}_t \mid \mathbf{x}_t) \textbf{ }p(\mathbf{x}_t\mid \mathbf{y}_{1:t-1}) \textbf{ }d\mathbf{x}_t.\]
 \end{itemize}
 The integrals are replaced with summations if the components of the state are discrete. 
 \end{theorem}
 
 \begin{proof}
-For the proof, check pages 55 and 56 in the book `Bayesian filtering and smoothing' by Simo Särkkä. 
+For the proof, check pages 55 and 56 of \cite{sarkka:bayesian_filtering}
 \end{proof}
 
 %{In principle}, Bayesian filtering provides a framework for sequentially estimating uncertain quantities as new data arrives. 
 
-\begin{example}[Estimating the Drone’s Position with Bayesian Filtering]
+\begin{example}[Estimating a drone’s position with Bayesian filtering]
 Continuing from Example~1.4, the state of the drone consists of its position and velocity, while the GPS provides noisy position measurements. The goal of Bayesian filtering is to combine what we know about the drone's movement with the new observations we receive at each time step. At each time step $t$, we want to compute the posterior distribution of the current state given all observations up to that point, $p(\mathbf{x}_t \mid \mathbf{y}_{1:t})$, which represents our best estimate of where the drone is and how fast it is moving.
 
 \noindent Bayesian filtering works in two main steps: \textbf{prediction} and \textbf{update}. 
@@ -101,7 +98,7 @@ where the likelihood term $p(\mathbf{y}_t \mid \mathbf{x}_t)$ comes from the obs
 \[
 \mathbf{y}_t = \mathbf{H}\mathbf{x}_t + \mathbf{r}_t.
 \]
-This step adjusts our guess by taking the measurement into account and reduces uncertainty about the drone's true position. \\
+This step adjusts our guess by taking the measurement into account and reduces uncertainty about the drone's true position.
 
 Intuitively, the prediction uses our knowledge about how the drone moves, while the update adjusts this prediction according to the noisy GPS data. Repeating these steps over time provides a continuous estimate of the drone’s trajectory. In the special case where the models are linear and the noise is Gaussian, this method becomes the \emph{Kalman filter}, which will be discussed in Chapter~3.
 \end{example}
@@ -116,11 +113,11 @@ Intuitively, the prediction uses our knowledge about how the drone moves, while 
 %     \item \textbf{Linear system}: transition and measurement are linear in the state. 
 %     \item \textbf{Gaussian noise}: process and measurement noise are normally distributed. 
 % \end{itemize}
-In practice, the integrals in the Bayesian filtering equations are rarely manageable, so we must rely on approximations. Exact solutions are only possible under restrictive assumptions, specifically, when the system is linear and the noise is Gaussian.
+In practice, the integrals in the Bayesian filtering equations are rarely manageable, so we must rely on approximations. Exact solutions are only possible under restrictive assumptions: When the system is linear and the noise is Gaussian, the exact solution is provided by the Kalman filter. When the system is discrete, it is called a hidden Markov model and can be solved using matrix algebra, provided the state space is not too large.
 % \st{Under these conditions the filtering equations lead to closed-form solutions.}
-Under these assumptions, the Bayesian filtering equations simplify to closed-form expressions. 
+%Under these assumptions, the Bayesian filtering equations simplify to closed-form expressions. 
 
-\begin{example}[Exact Filtering for the Drone Model]
+\begin{example}[Exact filtering for the drone Model]
 Let us return to the drone example from the previous sections. The state of the drone contains its position and velocity, and the measurements come from the GPS sensor. Both the state transition and observation models are linear, and the noise is Gaussian:
 
 \[
@@ -155,7 +152,7 @@ Although the Bayesian filtering framework offers several attractive properties, 
 \subsubsection*{Disadvantages of Bayesian Filtering}
 \begin{itemize}
     \item \textbf{Computational complexity:}  
-    The exact Bayesian filtering equations involve high-dimensional integrals that are generally intractable. In practice, approximations are required, which can be computationally expensive and may limit real-time applicability.
+    The exact Bayesian filtering equations involve high-dimensional integrals that are generally intractable. For nonlinear and non-Gaussian systems, approximations are required, which can be computationally expensive and may limit real-time applicability.
 
     \item \textbf{Dependence on model accuracy:}  
     The quality of the estimates depends critically on the accuracy of the system and measurement models. Incorrect assumptions about the dynamics or noise characteristics can lead to biased or divergent estimates.
