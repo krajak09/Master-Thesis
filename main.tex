@@ -4,7 +4,6 @@
 
 \documentclass[twoside]{article}
 
-\usepackage{graphicx} % Required for inserting images
 \usepackage[english]{babel} % Dictionary
 
 \usepackage{amsmath, amssymb, amsmath, amsthm} % Math 
@@ -63,8 +62,6 @@
 % backend = biber sorts the bibliography
 % style = numberic uses numbers for the sources, can also be alphabetic, authoryear, authortitle etc. 
 % sorting = nty sorts the sources by name, title, year, also possible nyt, nyvt (volume), none etc. for more information see overleaf documentation, Bibliography management in LaTeX
-\bibliography{plain}
-\bibliography{ref}
 
 %----------------------------------------------------------------------------------------
 % Theorems
@@ -176,5 +173,8 @@
 
 \newpage
 % References 
+\nocite{*}
 \printbibliography
+
+
 \end{document}
