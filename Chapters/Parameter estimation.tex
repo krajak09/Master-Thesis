@@ -1,0 +1,218 @@
+\section{Introduction}
+So far we have assumed that all parameters of the state space model are known. In practice this is rarely the case. When we work with real data we usually know the qualitative structure of the model, for example that the system follows a random walk or that it reverts to a mean, but we do not know the numerical values of the parameters. The noise covariances $\mathbf{Q}$ and $\mathbf{R}$, the transition matrix $\mathbf{A}$, and the observation matrix $\mathbf{H}$ are typically unknown and must be estimated from the data. We collect all of them in a common parameter vector $\boldsymbol{\theta} \in \mathbb{R}^{d}$ and write
+\begin{equation}
+    \mathbf{A} = \mathbf{A}(\boldsymbol{\theta}), \quad
+    \mathbf{H} = \mathbf{H}(\boldsymbol{\theta}), \quad
+    \mathbf{Q} = \mathbf{Q}(\boldsymbol{\theta}), \quad
+    \mathbf{R} = \mathbf{R}(\boldsymbol{\theta}).
+\end{equation}
+
+In the Bayesian view the parameters are themselves random variables with a prior distribution $p(\boldsymbol{\theta})$. The state space model with unknown parameters then reads \cite[Ch.~12]{sarkka:bayesian_filtering}
+\begin{align}
+    \boldsymbol{\theta} &\sim p(\boldsymbol{\theta}), \\
+    \mathbf{x}_0 &\sim p(\mathbf{x}_0 \mid \boldsymbol{\theta}), \\
+    \mathbf{x}_t &\sim p(\mathbf{x}_t \mid \mathbf{x}_{t-1}, \boldsymbol{\theta}), \\
+    \mathbf{y}_t &\sim p(\mathbf{y}_t \mid \mathbf{x}_t, \boldsymbol{\theta}).
+\end{align}
+
+Our goal is to find the parameters that best explain the observed data $\mathbf{y}_{1:T}$. A fully Bayesian treatment would compute the joint posterior $p(\mathbf{x}_{0:T}, \boldsymbol{\theta} \mid \mathbf{y}_{1:T})$ over states and parameters together. Since we are interested in the parameters, we integrate out the states and work with the marginal posterior
+\begin{equation}\label{eq:marginal_posterior}
+    p(\boldsymbol{\theta} \mid \mathbf{y}_{1:T})
+    = \int p(\mathbf{x}_{0:T}, \boldsymbol{\theta} \mid \mathbf{y}_{1:T}) \, \mathrm{d}\mathbf{x}_{0:T}
+    \;\propto\; p(\mathbf{y}_{1:T} \mid \boldsymbol{\theta})\, p(\boldsymbol{\theta}),
+\end{equation}
+
+where $p(\mathbf{y}_{1:T} \mid \boldsymbol{\theta})$ is the marginal likelihood, the density of the observed data under the model with parameter vector $\boldsymbol{\theta}$. The integral over $\mathbf{x}_{0:T}$ is high-dimensional and intractable in general. The key point of this chapter is that for state space models the marginal likelihood can still be evaluated recursively by running a filter forward in time. This makes the estimation problem tractable without ever forming the full joint posterior.
+
+%The central observation of this chapter is that, for state space models, the marginal likelihood can nevertheless be evaluated recursively. This is done by running a filter forward through the observations. The parameters can therefore be estimated without explicitly constructing the full joint posterior distribution over the states and parameters.
+% The key insight is that the marginal likelihood $p(\y_{1:T} \mid \boldsymbol{\theta})$ can be evaluated recursively using a Kalman filter without ever forming the joint posterior over states and parameters.
+
+We first define what we want to estimate, the maximum a posteriori and the maximum likelihood estimate. We then introduce the energy function, which we minimize to obtain these estimates and which can be computed recursively, and we look at how the minimization is done in practice. We end with the linear-Gaussian case, where the Kalman filter makes the recursion explicit.
+
+\section{Maximum a posteriori and maximum likelihood estimation}
+We begin with the quantities we want to estimate. Both are estimates derived from the marginal posterior \eqref{eq:marginal_posterior}, and neither requires a Gaussian assumption.
+The \emph{maximum a posteriori} (MAP) estimate is the parameter vector that maximizes the marginal posterior,
+\begin{equation}\label{eq:map}
+    \hat{\boldsymbol{\theta}}^{\mathrm{MAP}} = \arg\max_{\boldsymbol{\theta}} \, p(\boldsymbol{\theta} \mid \mathbf{y}_{1:T}).
+\end{equation}
+
+% This is equivalently obtained as the minimizer of the energy function. 
+% \begin{equation}\label{eq: map energy}
+%     \hat{\boldsymbol{\theta}}^{\mathrm{MAP}} = \arg\min_{\boldsymbol{\theta}} \, \varphi_T(\boldsymbol{\theta}).
+% \end{equation}
+
+% Minimizing the energy function is numerically more stable and easier to work with than directly maximizing the posterior. 
+
+% This is equivalent to minimizing the negative log-posterior (energy function) or equivalently maximizing the posterior. 
+
+It combines the information in the data, carried by the marginal likelihood, with the prior knowledge encoded in $p(\boldsymbol{\theta})$. 
+
+The \emph{ maximum likelihood} (ML) estimate is the special case in which the prior carries no information. If $p(\boldsymbol{\theta})$ is formally uniform, that is $p(\boldsymbol{\theta}) \propto 1$, the posterior is proportional to the likelihood and \eqref{eq:map} reduces to
+\begin{equation}\label{eq:ml}
+    \hat{\boldsymbol{\theta}}^{\mathrm{ML}} = \arg\max_{\boldsymbol{\theta}} \, p(\mathbf{y}_{1:T} \mid \boldsymbol{\theta}).
+\end{equation}
+A uniform prior over $\mathbb{R}^d$ is in general improper, since it does not integrate to a finite value. It serves here only as a formal device. The MAP estimate maximizes the posterior rather than integrating it, so the missing normalization is irrelevant. The ML estimate is thus a MAP estimate with a flat prior, and the two coincide whenever the prior is uninformative. In the following we work with the MAP estimate and recover the ML estimate by dropping the prior term.
+% Since the states are hidden, the likelihood is given by the integral
+% \begin{equation}
+%     p(\mathbf{y}_{1:T} \mid \boldsymbol{\theta}) 
+%     = \int p(\mathbf{x}_{0:T}, \mathbf{y}_{1:T} \mid \boldsymbol{\theta}) \, d\mathbf{x}_{0:T},
+% \end{equation}
+% which is intractable in general. However, by the prediction error decomposition
+% \begin{equation}\label{eq:prediction error decomposition}
+%     p(\y_{1:T} \mid \boldsymbol{\theta})
+%     \;=\;
+%     \prod_{k=1}^{T} p(\y_t \mid \y_{1:t-1}, \boldsymbol{\theta}),
+% \end{equation}
+% this can be evaluated recursively by the Kalman filter. The ML estimate corresponds to a MAP estimate with a formally uniform prior $p(\boldsymbol{\theta}) \propto 1$, i.e.~the energy function reduces to
+% \begin{equation}
+%     \varphi_T(\boldsymbol{\theta}) = -\log p(\y_{1:T} \mid \boldsymbol{\theta}).
+% \end{equation}. 
+\section{The energy function}\label{sec:energy-function}
+A useful way to think about parameter estimation is through the \textit{energy function}. Instead of directly maximizing a probability, we minimize an energy.
+
+Working with the energy function has practical advantages. The logarithm turns products into sums, which simplifies the expressions. In many cases, especially for Gaussian models, the energy becomes quadratic and can be interpreted as a sum of squared errors.
+
+\subsection{Derivation of the energy function}
+Given observations $\y_{1:T}$ and parameters $\boldsymbol{\theta}$, we define the energy as the negative log posterior. 
+\begin{equation}
+    \varphi_T(\boldsymbol{\theta}) = -\log p(\boldsymbol{\theta} \mid \y_{1:T}).
+\end{equation}
+Using Bayes' rule,
+\begin{equation}
+    p(\boldsymbol{\theta} \mid \y_{1:T}) = \frac{p(\y_{1:T} \mid \boldsymbol{\theta})\, p(\boldsymbol{\theta})}{p(\y_{1:T})}.
+\end{equation}
+Taking the negative logarithm gives
+\begin{equation}
+    -\log p(\boldsymbol{\theta} \mid \y_{1:T}) = -\log p(\y_{1:T} \mid \boldsymbol{\theta})-\log p(\boldsymbol{\theta})+\log p(\y_{1:T}).
+\end{equation}
+The last term $\log p(\y_{1:T})$ does not depend on $\boldsymbol{\theta}$. Therefore, it can be ignored for optimization. Hence we define
+
+\begin{definition}[Energy function]
+The energy function of the parameter $\boldsymbol{\theta}$ given observation $\y_{1:T}$ is defined as 
+\begin{equation}\label{def:energy}
+    \varphi_T(\boldsymbol{\theta})\;=\; -\log p(\y_{1:T} \mid \boldsymbol{\theta})-\log p(\boldsymbol{\theta}).
+\end{equation}
+\end{definition}
+% Minimizing this energy is equivalent to maximizing the joint probability. The advantage is that it often leads to simpler expressions and connects to optimization methods.
+Taking the negative logarithm of Bayes' rule $p(\boldsymbol{\theta} \mid \mathbf{y}_{1:T}) = p(\mathbf{y}_{1:T} \mid \boldsymbol{\theta})\, p(\boldsymbol{\theta}) / p(\mathbf{y}_{1:T})$ gives
+\begin{equation}
+    -\log p(\boldsymbol{\theta} \mid \mathbf{y}_{1:T}) = \varphi_T(\boldsymbol{\theta}) + \log p(\mathbf{y}_{1:T}).
+\end{equation}
+The last term does not depend on $\boldsymbol{\theta}$, so minimizing the energy is equivalent to maximizing the posterior,
+\begin{equation}\label{eq:map_energy}
+    \hat{\boldsymbol{\theta}}^{\mathrm{MAP}} = \arg\min_{\boldsymbol{\theta}} \, \varphi_T(\boldsymbol{\theta}).
+\end{equation}
+The ML estimate is recovered by dropping the prior term $-\log p(\boldsymbol{\theta})$. The logarithm also turns the product of densities into a sum, which is the key to evaluating the energy recursively.
+
+The marginal likelihood factorizes by the chain rule of probability into a product of one-step-ahead predictive densities,
+\begin{equation}\label{eq:prediction_error_decomposition}
+    p(\mathbf{y}_{1:T} \mid \boldsymbol{\theta})
+    = \prod_{t=1}^{T} p(\mathbf{y}_t \mid \mathbf{y}_{1:t-1}, \boldsymbol{\theta}),
+\end{equation}
+with the convention $p(\mathbf{y}_1 \mid \mathbf{y}_{1:0}, \boldsymbol{\theta}) = p(\mathbf{y}_1 \mid \boldsymbol{\theta})$. This is the prediction error decomposition. Substituting it into the energy turns the product into a sum and yields a recursion.
+
+\begin{theorem}[Energy function recursion {\cite[Chapter~12]{sarkka:bayesian_filtering}}]\label{thm:energy_recursion}
+Let $\varphi_0(\boldsymbol{\theta}) = -\log p(\boldsymbol{\theta})$. Then the energy function satisfies
+\begin{equation}\label{eq:energy_recursion}
+    \varphi_t(\boldsymbol{\theta}) = \varphi_{t-1}(\boldsymbol{\theta}) - \log p(\mathbf{y}_t \mid \mathbf{y}_{1:t-1}, \boldsymbol{\theta}), \qquad t = 1, \dots, T,
+\end{equation}
+and the final value $\varphi_T(\boldsymbol{\theta})$ equals the energy of Definition~\ref{def:energy}.
+\end{theorem}
+
+The term $p(\mathbf{y}_t \mid \mathbf{y}_{1:t-1}, \boldsymbol{\theta})$ is the one-step-ahead predictive density of the measurement, which is a standard output of any Bayesian filter. We can therefore evaluate the energy by running a filter forward in time and adding, at each step, a term that measures how surprising the new observation is under the current parameters.
+
+Once the energy function can be evaluated, parameter estimation becomes the optimization problem \eqref{eq:map_energy}. The energy is in general not available in closed form and may be non-convex, so we minimize it numerically. Two classes of methods are common. Gradient-free methods, such as the Nelder-Mead simplex method, only evaluate $\varphi_T$ and are convenient when derivatives with respect to $\boldsymbol{\theta}$ are not available. Gradient-based methods use the gradient of the energy, which can be propagated alongside the filter recursion, and typically converge faster when it can be computed. In both cases we usually optimize a transformed parameter. For example, we use the logarithm of a variance instead of the variance itself. This keeps the variance positive for every value the optimizer tries.
+
+
+\section{Parameter estimation in linear-Gaussian models}
+For a linear-Gaussian state space model the predictive densities in \eqref{eq:prediction_error_decomposition} are Gaussian, and the energy recursion of Theorem~\ref{thm:energy_recursion} becomes explicit. Consider
+\begin{equation}\label{eq:lin_gauss_param}
+    \begin{aligned}
+        \mathbf{x}_t &= \mathbf{A}(\boldsymbol{\theta})\,\mathbf{x}_{t-1} + \mathbf{q}_{t-1}, \quad \mathbf{q}_{t-1} \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}(\boldsymbol{\theta})), \\
+        \mathbf{y}_t &= \mathbf{H}(\boldsymbol{\theta})\,\mathbf{x}_t + \mathbf{r}_t, \quad \mathbf{r}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}(\boldsymbol{\theta})),
+    \end{aligned}
+\end{equation}
+where the system matrices depend on $\boldsymbol{\theta}$. Running the Kalman filter of Chapter~\ref{chap:kalman} with a fixed $\boldsymbol{\theta}$ produces, at each step, the innovation $\mathbf{v}_t$ and its covariance $\mathbf{S}_t$, and the predictive density of the measurement is $\mathbf{y}_t \mid \mathbf{y}_{1:t-1} \sim \mathcal{N}(\mathbf{H}(\boldsymbol{\theta})\,\mathbf{x}_{t|t-1}, \mathbf{S}_t)$. The predictive term in \eqref{eq:energy_recursion} is therefore a Gaussian density evaluated at $\mathbf{y}_t$, and its negative logarithm is available in closed form.
+
+\begin{theorem}[Energy function for the linear-Gaussian model, {\cite[Thm.~12.3]{sarkka:bayesian_filtering}}]\label{thm:energy_linear_gaussian}
+For the model \eqref{eq:lin_gauss_param}, let $\mathbf{v}_t(\boldsymbol{\theta})$ and $\mathbf{S}_t(\boldsymbol{\theta})$ be the innovation and innovation covariance produced by the Kalman filter run with parameters $\boldsymbol{\theta}$. Then the energy function satisfies
+\begin{equation}\label{eq:energy_linear_gaussian}
+    \varphi_t(\boldsymbol{\theta}) = \varphi_{t-1}(\boldsymbol{\theta}) + \tfrac{1}{2}\log\bigl|2\pi\,\mathbf{S}_t(\boldsymbol{\theta})\bigr| + \tfrac{1}{2}\,\mathbf{v}_t(\boldsymbol{\theta})^\top \mathbf{S}_t(\boldsymbol{\theta})^{-1} \mathbf{v}_t(\boldsymbol{\theta}),
+\end{equation}
+with initial value $\varphi_0(\boldsymbol{\theta}) = -\log p(\boldsymbol{\theta})$. The innovation $\mathbf{v}_t$ and its covariance $\mathbf{S}_t$ are computed by the Kalman recursion
+\begin{align*}
+    \text{Prediction:} \qquad
+    \mathbf{x}_{t|t-1} &= \mathbf{A}(\boldsymbol{\theta})\,\mathbf{x}_{t-1|t-1}, \\
+    \mathbf{P}_{t|t-1} &= \mathbf{A}(\boldsymbol{\theta})\,\mathbf{P}_{t-1}\,\mathbf{A}(\boldsymbol{\theta})^\top + \mathbf{Q}(\boldsymbol{\theta}), \\[2pt]
+    \text{Update:} \qquad
+    \mathbf{v}_t &= \mathbf{y}_t - \mathbf{H}(\boldsymbol{\theta})\,\mathbf{x}_{t|t-1}, \\
+    \mathbf{S}_t &= \mathbf{H}(\boldsymbol{\theta})\,\mathbf{P}_{t|t-1}\,\mathbf{H}(\boldsymbol{\theta})^\top + \mathbf{R}(\boldsymbol{\theta}), \\
+    \mathbf{K}_t &= \mathbf{P}_{t|t-1}\,\mathbf{H}(\boldsymbol{\theta})^\top \mathbf{S}_t^{-1}, \\
+    \mathbf{x}_{t|t} &= \mathbf{x}_{t|t-1} + \mathbf{K}_t \mathbf{v}_t, \\
+    \mathbf{P}_t &= \mathbf{P}_{t|t-1} - \mathbf{K}_t \mathbf{S}_t \mathbf{K}_t^\top.
+\end{align*}
+\end{theorem}
+
+\begin{proof}
+By the prediction error decomposition \eqref{eq:prediction_error_decomposition} and Theorem~\ref{thm:energy_recursion}, it suffices to identify the predictive density $p(\mathbf{y}_t \mid \mathbf{y}_{1:t-1}, \boldsymbol{\theta})$. For the linear-Gaussian model \eqref{eq:lin_gauss_param} the Kalman filter of Chapter~\ref{chap:kalman} gives $\mathbf{y}_t \mid \mathbf{y}_{1:t-1} \sim \mathcal{N}(\mathbf{H}(\boldsymbol{\theta})\,\mathbf{x}_{t|t-1}, \mathbf{S}_t)$ with $\mathbf{v}_t = \mathbf{y}_t - \mathbf{H}(\boldsymbol{\theta})\,\mathbf{x}_{t|t-1}$. The negative logarithm of this Gaussian density is
+\[
+    -\log p(\mathbf{y}_t \mid \mathbf{y}_{1:t-1}, \boldsymbol{\theta})
+    = \tfrac{1}{2}\log\bigl|2\pi\,\mathbf{S}_t\bigr| + \tfrac{1}{2}\,\mathbf{v}_t^\top \mathbf{S}_t^{-1} \mathbf{v}_t,
+\]
+and inserting it into \eqref{eq:energy_recursion} gives the stated recursion.
+\end{proof}
+
+% explain energy function intuitively
+The energy \eqref{eq:energy_linear_gaussian} has a clear interpretation. The quadratic term $\tfrac{1}{2}\mathbf{v}_t^\top \mathbf{S}_t^{-1}\mathbf{v}_t$ penalizes large prediction errors, while the log-determinant term $\tfrac{1}{2}\log|2\pi\mathbf{S}_t|$ penalizes a predictive variance that is too large. Minimizing the energy balances the two. The chosen parameters then explain the data with prediction errors that are not too large, and without making the predictive uncertainty bigger than it needs to be.
+
+\begin{example}[Estimating the measurement noise of a random walk, {cf.~\cite[Example~12.1]{sarkka:bayesian_filtering}}]\label{ex:rw_param}
+Consider the scalar random walk
+\begin{align*}
+    x_t &= x_{t-1} + q_{t-1}, \quad q_{t-1} \sim \mathcal{N}(0, Q), \\
+    y_t &= x_t + r_t, \quad r_t \sim \mathcal{N}(0, R),
+\end{align*}
+and suppose the measurement noise variance $R$ is unknown, so that $\boldsymbol{\theta} = R$. We estimate it by maximum likelihood. There is then no prior term, so $\varphi_0 = 0$, and we minimize the energy as follows.
+\begin{enumerate}
+    \item Choose an initial value, for example $R = 1$.
+    \item Run the Kalman filter through the data $y_{1:T}$ and record the innovations $v_t$ and innovation variances $S_t$.
+    \item Accumulate the energy $\varphi_t(R) = \varphi_{t-1}(R) + \tfrac{1}{2}\log(2\pi S_t) + \tfrac{1}{2}\, v_t^2 / S_t$ over all time steps.
+    \item Adjust $R$ with a scalar optimizer until $\varphi_T(R)$ is minimized.
+\end{enumerate}
+The resulting value of $R$ balances data fit against predictive uncertainty in the sense described above.
+\end{example}
+
+\section{Parameter estimation in non-linear Gaussian models}
+For a non-linear model
+\begin{equation}\label{eq:nonlinear_param}
+    \begin{aligned}
+        \mathbf{x}_t &= \mathbf{f}(\mathbf{x}_{t-1}, \boldsymbol{\theta}) + \mathbf{q}_{t-1}, \quad \mathbf{q}_{t-1} \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}(\boldsymbol{\theta})), \\
+        \mathbf{y}_t &= \mathbf{h}(\mathbf{x}_t, \boldsymbol{\theta}) + \mathbf{r}_t, \quad \mathbf{r}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}(\boldsymbol{\theta})),
+    \end{aligned}
+\end{equation}
+the one-step-ahead predictive densities in \eqref{eq:prediction_error_decomposition} are no longer Gaussian, and the energy can no longer be evaluated exactly. The Gaussian filters of Chapter~\ref{chap:nonlinear} give an approximation we can compute. At each step they return a Gaussian approximation of the predictive density of the measurement,
+\begin{equation}\label{eq:nonlinear_predictive}
+    p(\mathbf{y}_t \mid \mathbf{y}_{1:t-1}, \boldsymbol{\theta})
+    \;\approx\; \mathcal{N}\bigl(\mathbf{y}_t \,;\, \hat{\mathbf{y}}_{t|t-1}(\boldsymbol{\theta}),\, \mathbf{S}_t(\boldsymbol{\theta})\bigr),
+\end{equation}
+where $\hat{\mathbf{y}}_{t|t-1}(\boldsymbol{\theta})$ is the predicted mean of the measurement and $\mathbf{S}_t(\boldsymbol{\theta})$ its covariance, with the associated innovation $\mathbf{v}_t(\boldsymbol{\theta}) = \mathbf{y}_t - \hat{\mathbf{y}}_{t|t-1}(\boldsymbol{\theta})$.
+
+The two filters differ in how they produce these quantities. The extended Kalman filter linearizes the measurement function at the predicted state, so that
+\begin{equation*}
+    \hat{\mathbf{y}}_{t|t-1}(\boldsymbol{\theta}) = \mathbf{h}\bigl(\mathbf{x}_{t|t-1}, \boldsymbol{\theta}\bigr), \qquad
+    \mathbf{S}_t(\boldsymbol{\theta}) = \mathbf{H}_t\,\mathbf{P}_{t|t-1}\,\mathbf{H}_t^\top + \mathbf{R}(\boldsymbol{\theta}),
+\end{equation*}
+with $\mathbf{H}_t$ the Jacobian of $\mathbf{h}$ evaluated at $\mathbf{x}_{t|t-1}$. The unscented Kalman filter instead propagates a set of sigma points through $\mathbf{h}$ and recovers $\hat{\mathbf{y}}_{t|t-1}$ and $\mathbf{S}_t$ from the unscented transform of Chapter~\ref{chap:nonlinear}. In both cases the predicted mean, the innovation, and the innovation covariance depend on $\boldsymbol{\theta}$ through the system functions and the noise covariances, which is why we write them as functions of $\boldsymbol{\theta}$.
+
+Substituting the Gaussian approximation \eqref{eq:nonlinear_predictive} into the energy recursion \eqref{eq:energy_recursion} gives an approximate energy of exactly the same form as in the linear-Gaussian case \eqref{eq:energy_linear_gaussian} \cite[Section~12.3.3]{sarkka:bayesian_filtering},
+\begin{equation}\label{eq:energy_nonlinear}
+    \tilde{\varphi}_t(\boldsymbol{\theta}) = \tilde{\varphi}_{t-1}(\boldsymbol{\theta}) + \tfrac{1}{2}\log\bigl|2\pi\,\mathbf{S}_t(\boldsymbol{\theta})\bigr| + \tfrac{1}{2}\,\mathbf{v}_t(\boldsymbol{\theta})^\top \mathbf{S}_t(\boldsymbol{\theta})^{-1} \mathbf{v}_t(\boldsymbol{\theta}),
+\end{equation}
+with initial value $\tilde{\varphi}_0(\boldsymbol{\theta}) = -\log p(\boldsymbol{\theta})$. We write $\tilde{\varphi}_t$ rather than $\varphi_t$ to stress that the innovations and their covariances are now the approximate outputs of a Gaussian filter, not the exact quantities of the Kalman recursion. The estimate is obtained as before. For a fixed $\boldsymbol{\theta}$ we run the extended or unscented Kalman filter through the data, accumulate the terms of \eqref{eq:energy_nonlinear}, and minimize $\tilde{\varphi}_T$ over $\boldsymbol{\theta}$ with one of the numerical optimizers of Section~\ref{sec:energy-function}. The procedure is therefore unchanged, and only the filter that provides $\mathbf{v}_t$ and $\mathbf{S}_t$ is replaced.
+
+\begin{remark}\label{rem:state_augmentation}
+An alternative that avoids the energy function altogether is to treat the unknown parameters as part of the state and to estimate states and parameters jointly with a single filter \cite[Section~12.3.1]{sarkka:bayesian_filtering}. We augment the state as $\tilde{\mathbf{x}}_t = (\mathbf{x}_t, \boldsymbol{\theta}_t)$, give the parameters slow artificial dynamics such as a random walk, and run the extended or unscented Kalman filter of Chapter~\ref{chap:nonlinear}. We do not follow this route here. Our experiments use the energy function approach, and state augmentation treats the parameters as slowly varying rather than fixed, which makes the result sensitive to the choice of the artificial process noise.
+\end{remark}
+
+\begin{remark}[Limits of the approximation]\label{rem:nonlinear_energy}
+The recursion \eqref{eq:energy_nonlinear} rests on the Gaussian approximation \eqref{eq:nonlinear_predictive}, and how accurate it is depends on the filter underneath. The true predictive density is in general non-Gaussian, and both filters replace it by a Gaussian approximation. The extended Kalman filter does so through a first-order linearization, the unscented Kalman filter through the moment matching of the unscented transform. When the predictive density is strongly skewed or multimodal, $\tilde{\varphi}_T$ moves away from the exact energy. As a consequence $\tilde{\varphi}_T$ is no longer the exact negative log marginal likelihood, and its minimizer is an approximate maximum likelihood or maximum a posteriori estimate rather than the exact one. The interpretation of \eqref{eq:ml} as maximizing $p(\mathbf{y}_{1:T} \mid \boldsymbol{\theta})$ holds only up to this filtering error. The error also accumulates along the recursion, since the approximation enters at every step and the filtered moments feed the next prediction, so inaccuracies build up. Its size depends on how non-linear the model is and on the choice of filter. When the non-linearity is too strong for a Gaussian filter, an accurate likelihood requires methods that represent non-Gaussian densities directly, such as particle filters. These are beyond the scope of this thesis. Here we stay with models that are mild enough for the extended or unscented Kalman filter to give a usable approximation.
+\end{remark}

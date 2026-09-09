@@ -1,8 +1,7 @@
-%----------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 %	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
-%----------------------------------------------------------------------------------------
-
-\documentclass[twoside]{article}
+%--------------------------------------------------------------------------
+\documentclass[12pt, twoside, a4paper, openright]{report}
 
 \usepackage[english]{babel} % Dictionary
 
@@ -20,6 +19,10 @@
 \usepackage{csquotes} % cite a source
 \usepackage{ifoddpage} % for \checkoddpage and \ifoddpage
 
+\usepackage{fancyhdr}
+
+\usepackage{minted} % Code listings
+\setminted{fontsize=\small, breaklines=true, frame=single, framesep=5pt, xleftmargin=0pt}
 
 %---------------------------------------------------------------------------------------
 %	MARGIN SETTINGS
@@ -36,7 +39,7 @@
 % }
 
 
-\usepackage[singlespacing]{setspace}
+\usepackage[onehalfspacing]{setspace}
 
 \usepackage{geometry} % margin settings
 \geometry{a4paper, margin=2.5cm}
@@ -87,11 +90,12 @@
 
 \newcommand*\N{\mathbb{N}}
 \newcommand*\Z{\mathbb{Z}}
-\newcommand*\Q{\mathbb{Q}}
-\newcommand*\R{\mathbb{R}}
 
-\newcommand*\x{\mathbf{x}}
-\newcommand*\y{\mathbf{y}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\tht}{\boldsymbol{\theta}}
+\newcommand{\Q}{\mathbf{Q}}
+\newcommand{\R}{\mathbf{R}}
 
 \newcommand{\cmmnt}[1]{}
 %----------------------------------------------------------------------------------------
@@ -106,9 +110,11 @@
     \vspace{1.5cm}
     {\huge\bfseries Master Thesis \par}
     \vspace{1cm}
-    {\Large Title Thesis \par}
+    {\Large Kalman Filtering of Financial Time Series \par}
     \vspace{2cm}
     {\large Author: Keerthiga Rajakumar \par}
+    \vspace{0.5cm}
+    {\large Supervisor: Prof.~Alberto S.~Cattaneo \par}
     \vspace{0.5cm}
     {\large Supervisor: Marius Furter \par}
     \vfill
@@ -116,13 +122,17 @@
     \date{\today}
 
 \end{titlepage}
-%\cleardoublepage
+\cleardoublepage
 
 
-% Front  
-\pagenumbering{roman}
+% Front
+\pagenumbering{Roman}
+\input{Chapters/Abstract}
+\cleardoublepage
+\input{Chapters/Acknowledgements}
+\cleardoublepage
 \tableofcontents
-%\cleardoublepage
+\cleardoublepage
 
 
 % Main 
@@ -133,48 +143,53 @@
 \onehalfspacing
 
 \newpage
-\section{Basic Probability}
-\input{Chapters/Basic Probability.tex}
-%\cleardoublepage
+\chapter{Introduction}\label{chap:intro}
+\input{Chapters/Introduction}
+\cleardoublepage
 
 
 \newpage
-\section{Bayesian filtering equations and exact solutions}
+\chapter{Probability and state space models}\label{chap:basic}
+\input{Chapters/Probability and state space models.tex}
+%\cleardoublepage
+
+\newpage
+\chapter{Bayesian filtering equations and exact solutions}\label{chap:bayesian}
 \input{Chapters/Bayesian filtering equations and exact solutions.tex}
 %\cleardoublepage
 
-
 \newpage
-\section{Kalman filter}
+\chapter{Kalman filter}\label{chap:kalman}
 \input{Chapters/Kalman filter}
 %\cleardoublepage
 
+\newpage
+\chapter{Non-linear filtering}\label{chap:nonlinear}
+\input{Chapters/Non-linear filtering}
+%\cleardoublepage
+
+\newpage
+\chapter{Parameter estimation}\label{chap:parameter}
+\input{Chapters/Parameter estimation}
+%\cleardoublepage
+
+\newpage
+\chapter{Application to financial time series}\label{chap:portfolio}
+\input{Chapters/Application to financial time series}
+%\cleardoublepage
+
+\newpage
+\chapter{Conclusion}\label{chap:conclusion}
+\input{Chapters/Conclusion}
+\cleardoublepage
 % \newpage
-% \section{Extended Kalman filter}
-% \input{Chapters/Kalman filter}
+% \chapter*{Codes and Explanation}
+% \input{Chapters/Codes and Explanation}
 % %\cleardoublepage
-
-\newpage
-\section{Parameter Estimation}
-\input{Chapters/Parameter Estimation}
-%\cleardoublepage
-
-
-\newpage
-\section{Portfolio Optimization}
-\input{Chapters/Portfolio Optimization}
-%\cleardoublepage
-
-
-\newpage
-\section*{Codes and Explanation}
-\input{Chapters/Codes and Explanation}
-%\cleardoublepage
 
 \newpage
 % References 
 \nocite{*}
 \printbibliography
-
 
 \end{document}

@@ -1,0 +1,223 @@
+\section{Introduction to non-linear filtering}
+The presentation in this section follows \cite[Ch.~2 and Ch.~5]{sarkka:bayesian_filtering} and \cite[Ch.~8 to Ch.~11]{labbe:kalman_and_bayesian_filters}. In the previous chapters, we derived the Kalman filter as the exact solution to the Bayesian filtering problem under two conditions. The system dynamics must be linear and all noise must be Gaussian. In this context, linearity means that the relationship between $\x_{t-1}$ and $\x_{t}$ is described by a matrix multiplication. For example, the constant-velocity drone model in Example~\ref{ex:drone} (Tracking a drone's position and velocity in 2D) is linear because the position and velocity evolve according to the fixed transition matrix $\mathbf{A}$.
+%  A robot moving in a circle or a drone fighting with wind resistance involve non-linear mathematical relationships. If we use a standard linear Kalman filter to track a drone flying in a curve, the filter's mathematical model effectively tries to draw a straight line through that curve. As the drone turns, the filter's straight line prediction will separate further and further from the drone's actual position. This mismatch causes the filter to become overconfident in the wrong path.
+% The root of this problem lies in probability distributions. The Kalman filter assumes that everything is Gaussian. A fundamental property of Gaussian is that if you pass a Gaussian distribution through a linear function, the output is still a Gaussian. This allows the filter to keep track of just the mean and covariance. But if you pass a Gaussian through a non-linear function, the resulting distribution is generally no longer Gaussian. 
+
+In practice, however, most real world systems are not linear. The dynamics may involve acceleration or rotation, the sensors may report angles or distances rather than the state itself, and financial time series may show volatility effects. In such cases, the linear Gaussian assumptions of the Kalman filter are violated. 
+In a general non-linear state space model the dynamics and measurement equations are given by 
+\begin{equation}\label{eq: nonlinear ssm}
+    \begin{aligned}
+        \x_t &= f(\x_{t-1}) + \mathbf{q}_{t-1} \\
+        \y_t &= h(\x_t)+\mathbf{r}_t,
+    \end{aligned}
+\end{equation}
+where $f: \mathbb{R}^n \rightarrow \mathbb{R}^n$ and $h: \mathbb{R}^n \rightarrow \mathbb{R}^m$ may be non-linear functions. The noise terms satisfy $\mathbf{q}_{t-1} \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{t-1})$ and $\mathbf{r}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_t)$ and represent process and measurement uncertainty. 
+The structure of the Bayesian filtering equations does not change. We still have a prediction step and an update step. The difference is that the required integrals can no longer be solved in closed form.
+
+\subsection*{The Gaussian assumption}
+The main difficulty in non-linear filtering is that a Gaussian distribution does not stay Gaussian when it passes through a non-linear function. A simple example is the map $g(x) = x^2$ applied to $x \sim \mathcal{N}(0, \sigma^2)$. The result is never negative, so it cannot be Gaussian, and its mean is $\mathbb{E}[x^2] = \sigma^2$ rather than $g(\mathbb{E}[x]) = 0$. 
+
+In general the transformed density can be asymmetric or have several modes, so a mean and a covariance no longer determine it, and an exact treatment would have to carry the whole posterior density $p(\x_t \mid \y_{1:t})$, which requires integrals that cannot be computed in practice. The filters of this chapter keep a mean and a covariance anyway and accept that this is an approximation. They differ in how the two are obtained. This chapter focuses on the extended Kalman filter, which linearizes the non-linear system locally. The unscented Kalman filter, described briefly at the end of the chapter, instead uses deterministic sampling.
+% The main difficulty in non-linear filtering is that a Gaussian distribution does not stay Gaussian when it passes through a non-linear function. In the linear Kalman filter this property is what makes the recursion exact, since the posterior at every step is described completely by a mean vector and a covariance matrix. Through a non-linear map the transformed density is generally asymmetric and may have several modes, so a mean and a covariance no longer determine it.
+
+% An exact treatment would then have to carry the whole posterior density $p(\x_t \mid \y_{1:t})$, which involves integrals that cannot be computed in practice. The filters of this chapter keep a mean and a covariance anyway and accept that this is now an approximation. They differ in how the two quantities are obtained. This chapter focuses on the extended Kalman filter, which builds the Gaussian approximation by locally linearizing the non-linear system. A second approach, the unscented Kalman filter, instead approximates the distribution by deterministic sampling, and we describe it briefly at the end of the chapter.
+
+% Exact Bayesian inference in such cases requires calculating the full posterior density, which often involves intractable integrals.~\cite[Chapter 2]{sarkka:bayesian_filtering} Therefore, non-linear filtering relies on Gaussian approximations methods that approximate the resulting non-Gaussian posterior with a Gaussian density by estimating its mean and covariance.~\cite[Chapter 5]{sarkka:bayesian_filtering}
+% Different filtering algorithms differ in how this approximation is constructed. The extended Kalman filter uses local linearization. The unscented Kalman filter uses deterministic sampling. 
+% In the following sections, we begin with the extended Kalman filter, which extends the classical Kalman filter by locally linearizing the non-linear system. 
+
+%-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+\section{Extended Kalman filter (EKF)}
+The extended Kalman filter (EKF) was the first major adaptation of the Kalman filter for non-linear systems. It has been the industry standard for decades. Its core strategy is linearization. Since the Kalman filter equations only work for linear systems, the EKF's strategy is to ``cheat'' by pretending the system is linear for each single time step~\cite[Ch.~11]{labbe:kalman_and_bayesian_filters}.
+
+\subsection{Linearization via Taylor series}
+The core idea of the EKF is that any smooth curve looks like a straight line if you zoom in close enough. Imagine you are driving on a curved road at night. The full curve is not visible, but the headlights illuminate only the road immediately ahead, which appears straight. The EKF works on exactly this principle. At every single time step, it calculates the tangent (slope) of the non-linear function at the current estimated state, and then pretends the system is moving along this straight tangent line for the duration of that one time step.
+
+Formally, the EKF approximates the non-linear functions $f$ and $h$ by their first-order Taylor series expansion around the current estimate~\cite[Ch.~5]{sarkka:bayesian_filtering}. Given the predicted mean $\mathbf{x}_{t|t-1}$ and the filtered mean $\mathbf{x}_{t-1|t-1}$, we approximate
+\begin{align}
+  f(\x_{t-1}) &\approx f(\mathbf{x}_{t-1|t-1})
+    + \mathbf{F}_{t-1}(\x_{t-1} - \mathbf{x}_{t-1|t-1}),
+  \label{eq:ekf f linearise} \\
+  h(\x_{t})   &\approx h(\mathbf{x}_{t|t-1})
+    + \mathbf{H}_{t}(\x_{t} - \mathbf{x}_{t|t-1}),
+  \label{eq:ekf-h-linearise}
+\end{align}
+where $\mathbf{F}_{t-1}$ and $\mathbf{H}_{t}$ are the \emph{Jacobian matrices} of $f$ and $h$ evaluated at the current estimates:
+\begin{equation}\label{eq:ekf jacobians}
+    \mathbf{F}_{t-1} = \left.\frac{\partial f}{\partial \x}\right|_{\x = \mathbf{x}_{t-1|t-1}}, \qquad
+    \mathbf{H}_{t} = \left.\frac{\partial h}{\partial \x}\right|_{\x = \mathbf{x}_{t|t-1}} .
+\end{equation}
+
+
+These Jacobians replace the fixed matrices $\mathbf{A}$ and $\mathbf{H}$ of the standard Kalman filter. The key point is that they are recomputed at every time step, making the linearization local to the current state estimate.
+
+% Mathematically, the EKF achieves linearization using a tool from calculus called the Taylor Series expansion. A Taylor Series can represent any smooth function as a sum of increasingly complex terms. 
+% \begin{itemize}
+%     \item The first term is the value of the function at a specific point (the starting point).
+%     \item The second term describes the linear slope (the first derivative).
+%     \item The third term describes the curvature (the second derivative), and so on. 
+% \end{itemize}
+% The EKF takes the complex non-linear function of the system and calculates its Taylor Series. It then cuts off the series after the second term. It throws away all information about curvature and higher-order complexities, keeping only the linear slope. By doing this, it converts the difficult non-linear equation into a simpler linear equation that the standard Kalman filter can handle. This approximation is valid only if the time steps are short and the system doesn't curve too sharply between steps. 
+
+% In the linear Kalman filter, we used constant matrices ($A$ for the system model and $H$ for the measurement model) to describe how the system evolves. In a non-linear system, the ``the slope'' changes depending on where you are. Walking up a mountain is steeper than walking along the contour line. Therefore, we cannot use constant matrices. Instead, the EKF uses Jacobian matrices. 
+% A Jacobian is a matrix of partial derivatives. It represents the ``slope'' of the system at the current state. If our state vector has multiple variables (like position $x$, position $y$ and velocity $v$), the Jacobian matrix tells us how a small change in one variable affects all the other variables. The EKF calculates this matrix again at every single time step to update its linear approximation.~\cite[Chapter 11]{labbe:kalman_and_bayesian_filters}
+
+\subsection{Extended Kalman filter recursion}
+The EKF recursion follows the same predict-update structure as the Kalman filter, but uses the non-linear functions for the mean propagation and the Jacobians for the covariance.
+
+\begin{theorem}[Extended Kalman filter {\cite[Chapter 5]{sarkka:bayesian_filtering}}]\label{thm:ekf}
+    For the non-linear state space model \eqref{eq: nonlinear ssm}, the EKF approximates the filtering distribution $p(\x_{t} \mid \y_{1:t})$ as Gaussian, $\mathcal{N}(\mathbf{x}_{t|t}, \mathbf{P}_{t})$, through the following recursion.
+    
+    \noindent\textbf{Prediction step:}
+    \begin{align}
+      \mathbf{x}_{t|t-1} &= f(\mathbf{x}_{t-1|t-1}),\label{eq:ekf predict mean} \\
+      \mathbf{P}_{t|t-1}  &= \mathbf{F}_{t-1}\mathbf{P}_{t-1}\mathbf{F}^{\top}_{t-1} + \mathbf{Q}_{t-1}.\label{eq:ekf predict cov}
+    \end{align}
+    
+    \noindent\textbf{Update step:}
+    \begin{align*}
+      \mathbf{v}_{t}  &= \mathbf{y}_{t} - h(\mathbf{x}_{t|t-1}), \\
+      \mathbf{S}_{t}   &= \mathbf{H}_{t}\mathbf{P}_{t|t-1}\mathbf{H}^{\top}_{t} + \mathbf{R}_{t}, \\
+      \mathbf{K}_{t}   &= \mathbf{P}_{t|t-1}\mathbf{H}^{\top}_{t}\mathbf{S}^{-1}_{t}, \\
+      \mathbf{x}_{t|t}  &= \mathbf{x}_{t|t-1} + \mathbf{K}_{t}\mathbf{v}_{t}, \\
+      \mathbf{P}_{t}   &= \mathbf{P}_{t|t-1} - \mathbf{K}_{t}\mathbf{S}_{t}\mathbf{K}^{\top}_{t}.
+    \end{align*}
+    The Jacobians $\mathbf{F}_{t-1}$ and $\mathbf{H}_{t}$ are recomputed at each time step
+    according to \eqref{eq:ekf jacobians}.
+\end{theorem}
+
+Comparing Theorem~\ref{thm:ekf} with the standard Kalman filter, the structure is identical except for two changes. The
+non-linear functions $f$ and $h$ are used to update the mean, while the Jacobians $\mathbf{F}_{t-1}$ and $\mathbf{H}_{t}$ are used in place of the fixed matrices $\mathbf{A}$ and $\mathbf{H}$ to update the covariance. The EKF advances the mean using the full non-linear function, while the covariance is updated via a linear approximation obtained from the local tangent.
+
+\begin{example}[Tracking a target with radar]\label{ex:radar}
+Radar tracking is a standard setting in which the dynamics are linear but the measurements are not. A target moves in the plane with approximately constant velocity, while a radar at the origin measures its \emph{range} (distance) and \emph{bearing} (angle). We use the same state as in the drone model of Example~\ref{ex:drone},
+\[
+    \mathbf{x}_t = \begin{bmatrix} p_{x,t} & p_{y,t} & v_{x,t} & v_{y,t} \end{bmatrix}^{\top},
+\]
+collecting the position and the velocity in the two coordinate directions. The constant-velocity dynamics are linear,
+\[
+    \mathbf{x}_t = \mathbf{A}\mathbf{x}_{t-1} + \mathbf{q}_{t-1}, \qquad
+    \mathbf{A} = \begin{bmatrix} 1 & 0 & \Delta t & 0 \\ 0 & 1 & 0 & \Delta t \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix}, \qquad \mathbf{q}_{t-1} \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}),
+\]
+exactly as in the drone example. The non-linearity enters through the measurement. The radar observes the range and bearing of the target,
+\[
+    \mathbf{y}_t = h(\mathbf{x}_t) + \mathbf{r}_t, \qquad
+    h(\mathbf{x}_t) = \begin{bmatrix} \sqrt{p_{x,t}^2 + p_{y,t}^2} \\[4pt] \operatorname{atan2}(p_{y,t}, p_{x,t}) \end{bmatrix}, \qquad \mathbf{r}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}),
+\]
+where the measurement noise covariance $\mathbf{R} = \operatorname{diag}(\sigma_r^2, \sigma_\phi^2)$ is diagonal, with separate variances for range and bearing, which are measured in different units. The map $h$ is non-linear because both the Euclidean norm and the angle depend non-linearly on the position, so the Kalman filter does not apply directly. 
+\newline To run the EKF we need the Jacobian of $h$ with respect to the state, evaluated at the predicted mean $\mathbf{x}_{t|t-1}$. Writing $r = \sqrt{p_x^2 + p_y^2}$ for the range at the current estimate, the partial derivatives of range and bearing with respect to position are
+\[
+    \frac{\partial r}{\partial p_x} = \frac{p_x}{r}, \quad
+    \frac{\partial r}{\partial p_y} = \frac{p_y}{r}, \qquad
+    \frac{\partial \phi}{\partial p_x} = -\frac{p_y}{r^2}, \quad
+    \frac{\partial \phi}{\partial p_y} = \frac{p_x}{r^2},
+\]
+while both measurements are independent of the velocity components. The measurement Jacobian is therefore
+\[
+    \mathbf{H}_t = \begin{bmatrix} \dfrac{p_x}{r} & \dfrac{p_y}{r} & 0 & 0 \\[8pt] -\dfrac{p_y}{r^2} & \dfrac{p_x}{r^2} & 0 & 0 \end{bmatrix}_{\mathbf{x} = \mathbf{x}_{t|t-1}}.
+\]
+
+This matrix takes the place of the observation matrix in the EKF update of Theorem~\ref{thm:ekf}, and it is recomputed at every step from the current predicted estimate. The two zero columns reflect that the radar measures position only, not velocity. The velocity is observed indirectly through its effect on future positions.
+\end{example}
+
+
+% \begin{enumerate}
+%     \item \textbf{Predict:}Use the full non-linear function to predict the state (getting the best possible position estimate), but use the Jacobian to predict the covariance (approximating the uncertainty linearly).  
+%     \item \textbf{Update:} Calculate the measurement residual, then use the measurement Jacobian to calculate the Kalman gain and correct the state. 
+% \end{enumerate}
+% While the EKF is the industry standard for navigation systems (like GPS), it has significant drawbacks. First, calculating Jacobians requires calculus, which is mathematically difficult to derive and prone to errors to program. If the derivatives are derived incorrectly, the filter will not work. Second, if the time step is too long or the system is highly curved, the straight line approximation separates from reality quickly. This ``linearization error'' causes the filter to be overconfident and underestimate the true uncertainty, reporting a small uncertainty even when it is completely lost. 
+
+\subsection*{Limitations}
+While the EKF has been the workhorse of estimation for decades, it suffers from significant theoretical and practical drawbacks: 
+
+\begin{enumerate}
+    \item \textbf{Linearization error:} The Taylor series is a local approximation. If the non-linearity is severe, or if the time steps are large, the linear approximation fails to capture the system dynamics, causing the filter to diverge~\cite[Ch.~9]{labbe:kalman_and_bayesian_filters}. Labbe notes that the EKF always lags behind the true state in highly non-linear scenarios because it assumes a straight-line trajectory at the point of linearization~\cite[Ch.~8]{labbe:kalman_and_bayesian_filters}.
+    \item \textbf{Implementation difficulty:} Calculating Jacobian matrices for complex systems can be mathematically difficult and error-prone. If the system equations are not analytically differentiable, the EKF cannot be easily applied~\cite[Ch.~11]{labbe:kalman_and_bayesian_filters}.
+    \item \textbf{Gaussian distortion:} By linearizing the function at a single point, the mean, the EKF fails to account for how the spread, the covariance, of the input distribution interacts with the curvature of the non-linear function, often leading to underestimated covariance estimates~\cite[Ch.~5]{sarkka:bayesian_filtering}.
+\end{enumerate}
+
+%-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+\section{The unscented Kalman filter}
+
+The linearization error of the EKF has motivated an alternative that avoids derivatives altogether. The unscented Kalman filter (UKF), introduced by Julier and Uhlmann, keeps the Gaussian approximation but builds it in a different way~\cite[Ch.~5]{sarkka:bayesian_filtering}. The guiding idea is that it is easier to approximate a probability distribution than an arbitrary non-linear function~\cite[Ch.~10]{labbe:kalman_and_bayesian_filters}. Instead of linearizing $f$ and $h$, the UKF chooses a small set of points that carry the mean and covariance of the current estimate, propagates these points through the exact non-linear functions, and recovers the mean and covariance of the result from the transformed points.
+
+
+\subsection{The unscented transform}
+The core of the UKF is the unscented transform, which approximates how a Gaussian distribution passes through a non-linear function. It works like a very small, carefully chosen Monte Carlo sample, with the points placed deterministically instead of drawn at random. Let $\mathbf{x} \sim \mathcal{N}(\boldsymbol{\mu}, \mathbf{P})$ in $\mathbb{R}^{n}$ and let $\mathbf{z} = g(\mathbf{x})$ be its image under a non-linear map $g$.
+
+First, a set of $2n+1$ \emph{sigma points} is placed deterministically around the mean,
+\begin{equation}\label{eq:sigma points}
+    \mathcal{X}^{(0)} = \boldsymbol{\mu}, \qquad
+    \mathcal{X}^{(i)} = \boldsymbol{\mu} + \sqrt{n+\kappa}\,\bigl[\sqrt{\mathbf{P}}\,\bigr]_i, \qquad
+    \mathcal{X}^{(i+n)} = \boldsymbol{\mu} - \sqrt{n+\kappa}\,\bigl[\sqrt{\mathbf{P}}\,\bigr]_i,
+\end{equation}
+for $i = 1, \dots, n$, where $\bigl[\sqrt{\mathbf{P}}\,\bigr]_i$ is the $i$-th column of a matrix square root satisfying $\sqrt{\mathbf{P}}\,\sqrt{\mathbf{P}}^{\top} = \mathbf{P}$, in practice the Cholesky factor. The scalar $\kappa > -n$ controls how far the points are spread from the mean. Placed symmetrically about $\boldsymbol{\mu}$, the points reproduce the mean and covariance of $\mathbf{x}$ exactly.
+
+Second, each sigma point is propagated through the non-linear map,
+\begin{equation}\label{eq:sigma propagate}
+    \mathcal{Z}^{(i)} = g\bigl(\mathcal{X}^{(i)}\bigr), \qquad i = 0, \dots, 2n,
+\end{equation}
+without any Jacobian or linearization.
+
+Third, the mean and covariance of $\mathbf{z}$ are recovered as weighted averages of the transformed points,
+\begin{equation}\label{eq:ut recover}
+    \boldsymbol{\mu}_{z} = \sum_{i=0}^{2n} W_i\, \mathcal{Z}^{(i)}, \qquad
+    \mathbf{S}_{z} = \sum_{i=0}^{2n} W_i \bigl(\mathcal{Z}^{(i)} - \boldsymbol{\mu}_{z}\bigr)\bigl(\mathcal{Z}^{(i)} - \boldsymbol{\mu}_{z}\bigr)^{\top},
+\end{equation}
+together with, where needed, the cross-covariance between input and output,
+\begin{equation}\label{eq:ut cross}
+    \mathbf{C}_{z} = \sum_{i=0}^{2n} W_i \bigl(\mathcal{X}^{(i)} - \boldsymbol{\mu}\bigr)\bigl(\mathcal{Z}^{(i)} - \boldsymbol{\mu}_{z}\bigr)^{\top}.
+\end{equation}
+The weights are
+\begin{equation}\label{eq:ut weights}
+    W_0 = \frac{\kappa}{n+\kappa}, \qquad
+    W_i = \frac{1}{2(n+\kappa)}, \quad i = 1, \dots, 2n,
+\end{equation}
+and sum to one by construction. A standard choice is $\kappa = 3 - n$ \cite[Ch.~5]{sarkka:bayesian_filtering}.
+
+\subsection{Unscented Kalman filter recursion}
+Applying the unscented transform to the prediction and to the update turns the Gaussian filter into the UKF.
+
+\begin{theorem}[Unscented Kalman filter, {\cite[Ch.~5]{sarkka:bayesian_filtering}}]\label{thm:ukf}
+For the non-linear state space model \eqref{eq: nonlinear ssm} with additive Gaussian noise, the UKF approximates the filtering distribution $p(\x_t \mid \y_{1:t})$ as $\mathcal{N}(\mathbf{x}_{t|t}, \mathbf{P}_t)$, using the sigma-point construction \eqref{eq:sigma points} and the weights \eqref{eq:ut weights} with state dimension $n$.
+
+\noindent\textbf{Prediction step.}
+Form the sigma points $\mathcal{X}^{(i)}_{t-1}$ from $\mathbf{x}_{t-1|t-1}$ and $\mathbf{P}_{t-1}$ as in \eqref{eq:sigma points}, propagate them through the dynamics,
+\[
+    \hat{\mathcal{X}}^{(i)}_{t} = f\bigl(\mathcal{X}^{(i)}_{t-1}\bigr), \qquad i = 0, \dots, 2n,
+\]
+and recover the predicted moments
+\begin{align*}
+    \mathbf{x}_{t|t-1} &= \sum_{i=0}^{2n} W_i^{(m)}\, \hat{\mathcal{X}}^{(i)}_{t}, \\
+    \mathbf{P}_{t|t-1} &= \sum_{i=0}^{2n} W_i^{(c)} \bigl(\hat{\mathcal{X}}^{(i)}_{t} - \mathbf{x}_{t|t-1}\bigr)\bigl(\hat{\mathcal{X}}^{(i)}_{t} - \mathbf{x}_{t|t-1}\bigr)^{\top} + \mathbf{Q}_{t-1}.
+\end{align*}
+
+\noindent\textbf{Update step.}
+Form the sigma points $\mathcal{X}^{(i)}_{t|t-1}$ from $\mathbf{x}_{t|t-1}$ and $\mathbf{P}_{t|t-1}$ as in \eqref{eq:sigma points}, propagate them through the measurement model,
+\[
+    \hat{\mathcal{Y}}^{(i)}_{t} = h\bigl(\mathcal{X}^{(i)}_{t|t-1}\bigr), \qquad i = 0, \dots, 2n,
+\]
+and compute the predicted measurement, its covariance, and the state-measurement cross-covariance
+\begin{align*}
+    \hat{\mathbf{y}}_{t|t-1} &= \sum_{i=0}^{2n} W_i^{(m)}\, \hat{\mathcal{Y}}^{(i)}_{t}, \\
+    \mathbf{S}_{t} &= \sum_{i=0}^{2n} W_i^{(c)} \bigl(\hat{\mathcal{Y}}^{(i)}_{t} - \hat{\mathbf{y}}_{t|t-1}\bigr)\bigl(\hat{\mathcal{Y}}^{(i)}_{t} - \hat{\mathbf{y}}_{t|t-1}\bigr)^{\top} + \mathbf{R}_{t}, \\
+    \mathbf{C}_{t} &= \sum_{i=0}^{2n} W_i^{(c)} \bigl(\mathcal{X}^{(i)}_{t|t-1} - \mathbf{x}_{t|t-1}\bigr)\bigl(\hat{\mathcal{Y}}^{(i)}_{t} - \hat{\mathbf{y}}_{t|t-1}\bigr)^{\top}.
+\end{align*}
+The filtered estimate then follows from
+\begin{align*}
+    \mathbf{v}_{t} &= \mathbf{y}_{t} - \hat{\mathbf{y}}_{t|t-1}, &
+    \mathbf{K}_{t} &= \mathbf{C}_{t}\mathbf{S}_{t}^{-1}, \\
+    \mathbf{x}_{t|t} &= \mathbf{x}_{t|t-1} + \mathbf{K}_{t}\mathbf{v}_{t}, &
+    \mathbf{P}_{t} &= \mathbf{P}_{t|t-1} - \mathbf{K}_{t}\mathbf{S}_{t}\mathbf{K}_{t}^{\top}.
+\end{align*}
+\end{theorem}
+
+
+Because it uses no derivatives, the UKF applies when the Jacobians are hard to derive or the model functions are not differentiable, and it captures the mean and covariance to a higher order than the EKF when the non-linearity is strong~\cite[Ch.~5]{sarkka:bayesian_filtering}. The models in this thesis are only mildly non-linear, so we use the extended Kalman filter in the application chapter.
+
+% \section{Conclusion}
+% When the linear Gaussian assumptions fail, the extended Kalman filter extends the Kalman filter to non-linear models by linearizing the dynamics and the measurement around the current estimate, while keeping the familiar predict-update structure. It is efficient for systems with mild non-linearities whose Jacobians are easy to derive, which is why it remains a standard tool, and its main weakness is the linearization error that grows with the strength of the non-linearity. The unscented Kalman filter developed above is one derivative-free alternative for that case. In this thesis the non-linearities are mild, so the extended Kalman filter is the tool we carry into the application chapter, where the volatility of a financial series enters the measurement non-linearly.
+
+% For systems where the Gaussian assumption is fundamentally violated (e.g., bimodal distributions or heavy tails), neither EKF nor UKF is sufficient. In such cases, one must resort to Particle Filters (Sequential Monte Carlo), which approximate the distribution using a large set of random samples rather than a fixed Gaussian form.~\cite{sarkka}

@@ -1,123 +1,260 @@
-\subsection{The Kalman filter}
-A widely used Bayesian filter is the Kalman filter. It provides a closed form solution to the Bayesian filtering equations in the case of linear dynamics and Gaussian noise. So when a system evolves linearly in time and both process noise and measurement noise are Gaussian, the Kalman filter gives an efficient recursive way to estimate the hidden state from noisy observations. 
+\section{Introduction to Kalman filter}
+In Chapter~\ref{chap:bayesian} we derived the general Bayesian filtering equations, which in principle provide an exact solution to the sequential state estimation problem. In practice, however, the required integrals can be computed in closed-form only under strong assumptions on the transition and observation models. An important case where closed-form solutions exist is when the system dynamics are linear and all noise is Gaussian. Under these assumptions the Chapman-Kolmogorov integral and the Bayesian update both reduce to finite dimensional Gaussian computations, and the filtering distribution remains Gaussian at every time step. This chapter develops that case in full.
 
-The Kalman filter model is given by:
+The algorithm that solves this case is the \textit{Kalman filter}, first published by Rudolf Kálmán in 1960 and soon used in the navigation computers of the Apollo spacecraft~\cite[Preface]{labbe:kalman_and_bayesian_filters}. Given a noisy measurement and an imperfect model, it produces the optimal state estimate in the minimum mean-square error sense. Moreover, it does so recursively, processing one observation at a time, which makes it suitable for real-time use.
 
-\begin{align}\label{eq:Kalman filter}
-    \mathbf{x}_t &= \mathbf{A}_{t-1}\mathbf{x}_{t-1}+\mathbf{q}_{t-1}, \nonumber\\
+Two sources of information about the hidden state are available at each time step. The first is the prediction from the system model, and the second is the reading from the sensor. Both are uncertain. The Kalman filter combines them, weighting each source in proportion to its reliability. When the sensor is accurate relative to the model, the estimate shifts toward the measurement. When the model is reliable and the sensor is noisy, the prediction dominates. The optimal balance between the two is determined automatically through the Kalman gain.
+
+The same idea appears across engineering, science, and finance. A hidden state evolves according to a model, and noisy observations provide partial information about it. In navigation the filter fuses sensor data such as GPS into a continuous estimate of position and velocity, from the Apollo guidance system to modern aircraft and autonomous vehicles. In robotics and signal processing it recovers a clean state or signal from noisy measurements~\cite[Ch.~1.1]{sarkka:bayesian_filtering}. In finance it estimates latent variables and extracts trends, for example by modeling an asset price as a noisy observation of an underlying trend. The local level and local linear trend models of Chapter~\ref{chap:portfolio} are instances of this framework~\cite[Ch.~4]{palomar:portfolio_optimization}.
+
+Before deriving the filter, we make precise the sense in which its estimate is optimal. We measure the quality of a state estimate by its mean squared error.
+
+\begin{definition}[Mean squared error and MMSE estimate]\label{def:mmse}
+Let $\mathbf{x}_t$ be the unknown state and let $\mathbf{a}$ be any estimate of it computed from the observations $\mathbf{y}_{1:t}$. The \emph{mean squared error} (MSE) of the estimate is
+\[
+  \mathrm{MSE}(\mathbf{a}) = \mathbb{E}\!\left[\lVert \mathbf{x}_t - \mathbf{a} \rVert^2\right].
+\]
+An estimate that minimizes the mean squared error is called a \emph{minimum mean squared error} (MMSE) estimate.
+\end{definition}
+
+Among all estimates formed from the observations, the mean squared error is minimized by the conditional mean $\mathbb{E}[\mathbf{x}_t \mid \mathbf{y}_{1:t}]$~\cite[Ch.~2.4]{sarkka:bayesian_filtering}. This is why the Kalman filter reports the posterior mean $\mathbf{x}_{t|t}$ as its state estimate. Under the linear-Gaussian assumptions the filtering distribution is Gaussian, its mean is the MMSE estimate, and the recursion below computes it in closed-form. The same criterion comes back when we measure accuracy in practice. In Chapter~\ref{chap:nonlinear} the extended and unscented filters are compared through the root mean squared error, the square root of an average of squared estimation errors, and in Chapter~\ref{chap:portfolio} the competing financial models are ranked by their mean squared one-step prediction error.
+
+% \begin{example}[Drone tracking]
+    % Let us build this intuition using the drone we have been tracking throughout this thesis. 
+    % The drone is flying over an open field. Its motion follows an approximately constant-velocity model perturbed by wind noise, and a GPS sensor provides noisy position measurements at each time step. At each time step we want our best estimate of the drone's position and velocity.
+
+    % Here is what happens at each step. First, we use the transition model to predict where the drone should be now, based on where it was before and how fast it was moving. This gives us a predicted position, but our uncertainty grows because the wind could have pushed the drone off course. Then the GPS reading arrives. It tells us approximately where the drone is, but it is noisy. The Kalman filter combines our prediction with the GPS reading, weighting them by their respective uncertainties, to produce an updated estimate that is better than either source alone.
+    
+    % If the GPS is very accurate (small $R$), the updated estimate stays close to the GPS reading. If the GPS is very noisy (large $R$), the filter trusts the model prediction more and the GPS barely moves the estimate. These weights doesn't need to be decided manually. The filter determines the optimal weights automatically from the noise covariances at each step.
+% \end{example}
+
+\section{Linear-Gaussian state space model}
+To apply the Kalman filter, we need the system to fit the linear-Gaussian state space model. We already introduced this model for the drone in Example~\ref{ex:drone}. Here we write it in its general form.
+
+A hidden state $\mathbf{x}_t$ evolves over time according to  
+\begin{equation}\label{eq:linear ssm}
+    \begin{aligned} 
+    \mathbf{x}_t &= \mathbf{A}_{t-1}\mathbf{x}_{t-1}+\mathbf{q}_{t-1}, \\
     \mathbf{y}_t &= \mathbf{H}_t\mathbf{x}_t+\mathbf{r}_t
-\end{align}
-
-where 
+    \end{aligned}
+\end{equation}
+where the terms are defined as follows: 
 \begin{itemize}
-    \item $\mathbf{x}_t\in\mathbb R^n$ is the hidden state at time $t$,
-    \item $\mathbf{A}_{t-1}\in\mathbb R^{n\times n}$ is the state transition matrix,
-    \item $\mathbf{q}_{t-1}\sim \mathcal N(\mathbf{0},\mathbf{Q}_{t-1})$ represent the process noise,
-    \item $\mathbf{y}_t\in\mathbb R^m$ is the measurement at time $t$,
-    \item $\mathbf{H}_t\in\mathbb R^{m\times n}$ is the observation matrix, and
-    \item $\mathbf{r}_t\sim \mathcal N(\mathbf{0},\mathbf{R}_t)$ is the measurement noise.
+    \item $\mathbf{x}_t\in\mathbb R^n$ is the hidden state (latent vector) at time $t$.
+    \item $\mathbf{A}_{t-1}\in\mathbb R^{n\times n}$ is the state transition matrix, which defines the linear evolution of the state from time $t-1$ to $t$.
+    \item $\mathbf{q}_{t-1}\sim \mathcal N(\mathbf{0},\mathbf{Q}_{t-1})$ represents the process noise, a Gaussian random noise with covariance matrix $\mathbf{Q}_{t-1}$ that models uncertainty in the state dynamics. 
+    \item $\mathbf{y}_t\in\mathbb R^m$ is the observation (measurement) at time $t$.
+    \item $\mathbf{H}_t\in\mathbb R^{m\times n}$ is the observation matrix, selecting which parts of the state are observed.
+    \item $\mathbf{r}_t\sim \mathcal N(\mathbf{0},\mathbf{R}_t)$ is the measurement noise, a Gaussian random noise with covariance $\mathbf{R}_t$. 
 \end{itemize}
 
-All matrices may be time-varying. This is the standard linear Gaussian state space model used in \cite{sarkka:bayesian_filtering}.\\
+All matrices $\mathbf{A}_{t-1}, \mathbf{H}_t, \mathbf{Q}_{t-1}$ and $\mathbf{R}_t$ may be time-varying. For a given sequence of observations $\y_1, \y_2, \dots, \y_T$, the goal of filtering is to compute the posterior distribution of the state $\mathbf{x}_t$ at each time $t$. In the linear-Gaussian model setting, this filtering problem is exactly solved by the Kalman filter.
 
 
-\textbf{Recursive filtering steps}\\
-At each time step, the Kalman filter runs two things: predict and update. \\
-Let \(\mathbf{m}_{t-1}\) and \(\mathbf{P}_{t-1}\) denote the filtering mean and covariance at time \(t-1\). Then:
+\section{The Kalman filter recursion} %Kalman filter recursion: prediction and update?
+We now derive the Kalman filter step by step. The derivation follows directly from the Gaussian properties of Chapter~\ref{chap:basic}.
 
-\begin{enumerate}
-    \item \textbf{Prediction}: 
-    The prediction is 
-        \begin{align} 
-            \mathbf{m}_t^- &= \mathbf{A}_{t-1}\mathbf{m}_{t-1},\\ \mathbf{P}_t^- &= \mathbf{A}_{t-1}\mathbf{P}_{t-1}\mathbf{A}_{t-1}^\top + \mathbf{Q}_{t-1}. 
-        \end{align}
-    Here \(\mathbf{m}_t^-\) is the prior mean (before seeing \(\mathbf{y}_t\)) and \(\mathbf{P}_t^-\) is the prior covariance, our uncertainty about the state prediction.
-    \item \textbf{Update (correction)}: This prediction is corrected using the new measurement.
-    Define the prediction error and its covariance 
-        \begin{align} 
-            \mathbf{v}_t &= \mathbf{y}_t - \mathbf{H}_t \mathbf{m}_t^-,\qquad \mathbf{S}_t = \mathbf{H}_t \mathbf{P}_t^- \mathbf{H}_t^\top + \mathbf{R}_t, 
-        \end{align} and the Kalman gain 
-        \begin{align} 
-            \mathbf{K}_t = \mathbf{P}_t^- \mathbf{H}_t^\top \mathbf{S}_t^{-1}. 
-        \end{align}
-    The update is 
-        \begin{align} 
-            \mathbf{m}_t &= \mathbf{m}_t^- + \mathbf{K}_t \mathbf{v}_t,\\ 
-            \mathbf{P}_t &= (\mathbf{I}-\mathbf{K}_t\mathbf{H}_t)\mathbf{P}_t^-(\mathbf{I}-\mathbf{K}_t\mathbf{H}_t)^\top + \mathbf{K}_t \mathbf{R}_t \mathbf{K}_t^\top.
-        \end{align}
-    The iterations begin from some prior $\textbf{m}_0, \textbf{P}_0$.
-\end{enumerate}
+Suppose that at time $t-1$ we have a Gaussian posterior distribution over the state 
+\[
+\mathbf{x}_{t-1} \mid \mathbf{y}_{1:t-1} \sim \mathcal{N}(\mathbf{x}_{t-1|t-1}, \mathbf{P}_{t-1}).
+\]
+The mean  $\mathbf{x}_{t-1|t-1}$ is our best estimate of the state, and the covariance $\mathbf{P}_{t-1}$ describes how uncertain we are. The Kalman filter tells us how to update this distribution when the new observation $\mathbf{y}_{t}$ arrives.
 
-
-This mix of prediction and update allows the filter to track the system’s state over time, even when the measurements are noisy.
-
-The Kalman filter assumes linear dynamics and Gaussian noises with known variances. The ratio between process noise $\mathbf{Q}$ and measurement noise is important. With very small measurement noise $\mathbf{R}$ the filter can overfit measurements. It overweights the observations and underweights the model dynamics. The filter appears to fit the data perfectly but loses predictive power because it treats random observation noise as real signal. While with very small process noise $\mathbf{Q}$ the filter may be too \textcolor{orange}{find correct word}. The filter becomes overconfident in its model dynamics and underweights new measurements. The estimated states change only slowly and may lag behind the true process. Especially when the underlying system evolves faster than expected. % Intuitive it means that the filter trusts its model too much and ignores the measurements. The state estimate reacts slowly to new data. % for the example, if Q is large, the filter assumes the object can move unpredictably; it follows the data closely, if Q is very small the filter assumes smooth movements; it barely updates when the object suddendly turns. 
-This behaviour shows the importance of correctly identifying ratio between process and measurement noise variances. 
-
-
-\begin{theorem}[Kalman filter]
-The Bayesian filtering equations for the linear filtering model \eqref{eq:Kalman filter} can be evaluated in closed form and the resulting distributions are Gaussian:    
-
-\begin{align}\label{eq:Kalman filter distributions}
-    p(\mathbf{x}_t\mid\mathbf{y}_{1:t-1})&= N(\mathbf{x}_t\mid\mathbf{m}_t^-,\mathbf{P}_t^-),\nonumber \\
-    p(\mathbf{x}_t\mid\mathbf{y}_t)&= N(\mathbf{x}_t\mid\mathbf{m}_t,\mathbf{P}_t),\nonumber \\
-    p(\mathbf{y}_t\mid\mathbf{y}_{1:t-1})&= N(\mathbf{y}_t\mid\mathbf{H}_t\mathbf{m}_t^-,\mathbf{S}_t).
+\subsection*{Step 1: Predict}
+Before the new observation arrives, we predict the state at time $t$ using the transition model
+\[
+\x_t = \mathbf{A}_{t-1}\x_{t-1} + \mathbf{q}_{t-1},
+\]
+with process noise $\mathbf{q}_{t-1} \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{t-1})$, independent of $\mathbf{x}_{t-1}$. Both steps of this prediction are results of Chapter~\ref{chap:basic}. Applying the transition matrix to a Gaussian state gives a Gaussian by Proposition~\ref{prop:affine}, and adding the independent process noise keeps it Gaussian by Proposition~\ref{prop:sum}. The predicted distribution is therefore again Gaussian,
+\begin{equation}\label{eq:kalman predict}
+  \x_t \mid \y_{1:t-1}
+  \sim \mathcal{N}(\mathbf{x}_{t|t-1},\, \mathbf{P}_{t|t-1}),
+\end{equation}
+where
+\begin{align}
+    \mathbf{x}_{t|t-1} &= \mathbf{A}_{t-1}\mathbf{x}_{t-1|t-1}, \label{eq:predict_mean} \\ 
+    \mathbf{P}_{t|t-1} &= \mathbf{A}_{t-1}\mathbf{P}_{t-1}\mathbf{A}_{t-1}^\top + \mathbf{Q}_{t-1}. \label{eq:predict_cov}
 \end{align}
+The predicted mean $\mathbf{x}_{t|t-1}$ is the best estimate of $\mathbf{x}_{t}$ before seeing $\mathbf{y}_{t}$, and $\mathbf{P}_{t|t-1}$ measures the uncertainty in that prediction. The covariance grows relative to $\mathbf{P}_{t-1}$ because the process noise $\mathbf{Q}_{t-1}$ accumulates between time steps. Even if the drone's position was well known at $t-1$, wind may have moved it off course by time $t$.
+
+% Here $\mathbf{m}_t^-$ and $\mathbf{P}_t^-$ denote the prior (or predicted) mean and prior covariance of $\mathbf{x}_t$ given $\mathbf{y}_{1:t-1}$. In other words, $\mathbf{m}_t^- = \mathbb{E}[\mathbf{x}_t \mid \mathbf{y}_{1:t-1}]$ is our best guess for the state before seeing $\mathbf{y}_t$ and $\mathbf{P}_t^- = \mathrm{Cov}(\mathbf{x}_t \mid \mathbf{y}_{1:t-1})$ quantifies the uncertainty in that prediction.
+
+% Notice that the covariance $\mathbf{P}^{-}_{t}$ is \textit{larger} than $\mathbf{P}_{t-1}$ (in the positive semi-definite sense) because we added $\mathbf{Q}_{t-1}$. This reflects the passage of time and the accumulation of process noise, so uncertainty is greater than before the prediction.
+% Since $\mathbf{Q}_{t-1} \succeq \mathbf{0}$, it follows that $\mathbf{P}^{-}_{t} \succeq \mathbf{A}_{t-1}\mathbf{P}_{t-1}\mathbf{A}^{\top}_{t-1}$: the prediction step never reduces uncertainty.
+    
+\subsection*{Step 2: Update} 
+Once the new observation $\y_t$ is received, we update the state estimate by incorporating this information. According to Bayes' rule, the posterior $p(\x_t \mid \y_{1:t})$ is proportional to the product of the prior $p(\x_t \mid \y_{1:t-1})$ and the likelihood $p(\y_t \mid \x_t)$ from the measurement model. To perform the update, we first define the \textit{innovation} (measurement residual) and its covariance:
+\begin{align}                
+    \mathbf{v}_t &= \mathbf{y}_t - \mathbf{H}_t \mathbf{x}_{t|t-1}, \\
+    \mathbf{S}_t &= \mathbf{H}_t \mathbf{P}_{t|t-1} \mathbf{H}_t^\top + \mathbf{R}_t.
+\end{align}
+
+The innovation $\mathbf{v}_t$ measures the discrepancy between the actual observation $\y_t$ and the predicted observation $\mathbf{H}_t \mathbf{x}_{t|t-1}$. Its covariance $\mathbf{S}_t$, called the innovation covariance, represents the total uncertainty in the observation space, combining both the predicted state uncertainty and the measurement noise.  
+
+Next, we define the Kalman gain: 
+\begin{equation}\label{eq: Kalman gain}
+    \mathbf{K}_t = \mathbf{P}_{t|t-1} \mathbf{H}_t^\top \mathbf{S}_t^{-1}.
+\end{equation}
+The Kalman gain $\mathbf{K}_t$ determines how strongly the estimate is corrected based on the new observation. It balances the uncertainty in the prediction against the uncertainty in the measurement. If the prediction is more uncertain, the gain is large and the update leans toward the data. If the measurement is more uncertain, the gain is small and the update relies more on the model.
+% For instance, if $\mathbf{S}_t$ is small, indicating a confident prediction and accurate measurement, whereas a smaller $\mathbf{K}_t$ means the filter trusts the model more relative to the noisy measurement. % \cite[Ch. 6]{sarkka:bayesian_filtering}.
+With these quantities the update becomes a direct application of the Gaussian conditioning of Chapter~\ref{chap:basic}. The predicted state and the measurement are jointly Gaussian by Proposition~\ref{prop:joint}, and conditioning on the observed $\y_t$ with Proposition~\ref{prop:conditional} gives the posterior distribution
+\begin{equation}
+  \x_t \mid \y_{1:t}
+  \sim \mathcal{N}(\mathbf{x}_{t|t}, \mathbf{P}_t),
+\end{equation}
+with updated mean and covariance
+\begin{align}
+  \mathbf{x}_{t|t} &= \mathbf{x}_{t|t-1} + \mathbf{K}_t \mathbf{v}_t,\label{kalman update mean} \\
+  \mathbf{P}_t &= \mathbf{P}_{t|t-1} - \mathbf{K}_t \mathbf{S}_t \mathbf{K}_t^\top.\label{kalman update cov}
+\end{align}
+
+The mean update \eqref{kalman update mean} adjusts the prediction by a correction term $\mathbf{K}_t \mathbf{v}_t$, which depends on both the size of the innovation and the Kalman gain. A larger innovation or a larger Kalman gain produces a larger correction. The covariance update subtracts $\mathbf{K}_{t}\mathbf{S}_{t}\mathbf{K}^{\top}_{t}$, whose diagonal entries are non-negative, so the variance the filter reports for each component of the state is no larger after the update than before it. Two limits of that statement matter. It concerns the covariance computed from the assumed $\mathbf{Q}$ and $\mathbf{R}$, not the error the filter actually makes, a gap we return to in Section~\ref{sec:qr}. 
+
+\begin{remark}
+An equivalent form of the covariance update is
+\[
+  \mathbf{P}_t = (\mathbf{I} - \mathbf{K}_t \mathbf{H}_t)\mathbf{P}_{t|t-1}(\mathbf{I} - \mathbf{K}_t \mathbf{H}_t)^\top + \mathbf{K}_t \mathbf{R}_t \mathbf{K}_t^\top,
+\]
+known as the Joseph form. It is numerically more stable and guarantees that $\mathbf{P}_t$ remains positive semi-definite~\cite[Ch.~7]{labbe:kalman_and_bayesian_filters}.
+\end{remark}
+          
+% Here $\mathbf{m}_t= \mathbb{E}[\x_t \mid \y_{1:t}]$ is the posterior mean (filtered estimate) after incorporating $\y_t$ and $\mathbf{P}_t= \mathrm{Cov}(\x_t \mid \y_{1:t})$ is the posterior covariance. One often uses the equivalent simpler form $\mathbf{P}_t = \mathbf{P}_t^--\mathbf{K}_t\mathbf{S}_t\mathbf{K}t^\top$ instead of \ref{eq: posterior covariance}.
+
+\subsection*{Recursion}    
+The recursion starts with an initial prior $\x_0 \sim \mathcal{N}(\mathbf{x}_{0|0}, \mathbf{P}_0)$, reflecting our knowledge of the state at time $t = 0$. At each step, the prediction-update cycle produces a new filtering distribution
+\[
+\mathcal{N}(\mathbf{x}_{t|t}, \mathbf{P}_t),
+\]
+which has the same form as the prior and therefore serves as the prior for the next time step.
+This alternating predict-update cycle lets the filter track the system's state over time. At each step, the current estimate $(\mathbf{x}_{t|t}, \mathbf{P}_t)$ summarizes all past observations $\y_{1:t}$ and serves as the starting point for the next step. As new observations are incorporated, the estimate is updated and gradually becomes more accurate, even when the data is noisy.
+
+For future reference, we now state the result formally:
+
+\begin{theorem}[Kalman filter,~\cite{sarkka:bayesian_filtering} Thm.~4.3]\label{thm: kalman filter}
+For the linear-Gaussian state space model defined by \eqref{eq:linear ssm}, the Bayesian filtering problem has an exact closed-form solution. All relevant conditional distributions are Gaussian for each $t$:    
+\begin{equation}\label{eq:Kalman filter distributions}
+    \begin{aligned}
+        p(\mathbf{x}_t \mid \mathbf{y}_{1:t-1})&= \mathcal{N}(\mathbf{x}_t \mid\mathbf{x}_{t|t-1},\mathbf{P}_{t|t-1}), \\
+        p(\mathbf{x}_t \mid \mathbf{y}_{1:t})&= \mathcal{N}(\mathbf{x}_t \mid \mathbf{x}_{t|t},\mathbf{P}_t), \\
+        p(\mathbf{y}_t \mid \mathbf{y}_{1:t-1})&= \mathcal{N}(\mathbf{y}_t \mid \mathbf{H}_t\mathbf{x}_{t|t-1},\mathbf{S}_t).
+    \end{aligned}
+\end{equation}
+
 The parameters of the distributions above can be computed with the following Kalman filter prediction and update steps.
 
 \begin{itemize}
-    \item The prediction step is
+    \item The prediction step is given by
     \begin{align}
-        \mathbf{m}_t^- &= \mathbf{A}_{t-1}\mathbf{m}_{t-1}, \nonumber\\
-        \mathbf{P}_t^- &= \mathbf{A}_{t-1}\mathbf{P}_{t-1}\mathbf{A}_{t-1}^\top + \mathbf{Q}_{t-1}
+        \mathbf{x}_{t|t-1} &= \mathbf{A}_{t-1}\mathbf{x}_{t-1|t-1}, \nonumber\\
+        \mathbf{P}_{t|t-1} &= \mathbf{A}_{t-1}\mathbf{P}_{t-1}\mathbf{A}_{t-1}^\top + \mathbf{Q}_{t-1}
     \end{align}
 
-    \item The update step is
+    \item The update step is given by
     \begin{align}
-        \mathbf{v}_t &= \mathbf{y}_t - \mathbf{H}_t\mathbf{m}_t^- \nonumber\\
-        \mathbf{S}_t &= \mathbf{H}_t\mathbf{P}_t^-\mathbf{H}_{t}^\top + \mathbf{R}_t \nonumber\\
-        \mathbf{K}_t &= \mathbf{P}_t^-\mathbf{H}_t^\top\mathbf{S}_t^{-1} \nonumber\\
-        \mathbf{m}_t &= \mathbf{m}_t^- + \mathbf{K}_t\mathbf{v}_t \nonumber\\
-        \mathbf{P}_t &= \mathbf{P}_t^- - \mathbf{K}_t\mathbf{S}_t \mathbf{K}_t^\top
+        \mathbf{v}_t &= \mathbf{y}_t - \mathbf{H}_t\mathbf{x}_{t|t-1} \nonumber\\
+        \mathbf{S}_t &= \mathbf{H}_t\mathbf{P}_{t|t-1}\mathbf{H}_{t}^\top + \mathbf{R}_t \nonumber\\
+        \mathbf{K}_t &= \mathbf{P}_{t|t-1}\mathbf{H}_t^\top\mathbf{S}_t^{-1} \nonumber\\
+        \mathbf{x}_{t|t} &= \mathbf{x}_{t|t-1} + \mathbf{K}_t\mathbf{v}_t \nonumber\\
+        \mathbf{P}_t &= \mathbf{P}_{t|t-1} - \mathbf{K}_t\mathbf{S}_t \mathbf{K}_t^\top
     \end{align}
 \end{itemize}
-
-The recursion is initiated from the prior mean $\mathbf{m}_0$ and covariance $\mathbf{P}_0$.
+The recursion is initiated from the prior mean $\mathbf{x}_{0|0}$ and covariance $\mathbf{P}_0$.
 \end{theorem}
 
-\begin{proof}
-For the proof, check pages 57 and 58 in the book `Bayesian filtering and smoothing' by Simo Särkkä. 
+\begin{proof}[Proof sketch.]
+The proof applies the Gaussian propositions of Chapter~\ref{chap:basic} to the two steps, in the same way as the derivation above, and can be found in~\cite[p.~57 and 58]{sarkka:bayesian_filtering}.
+% \begin{itemize}
+%     \item show $p(\mathbf{x}_{t-1} \mid \mathbf{y}_{1:t-1}) \text{ Gaussian}\Rightarrow p(\mathbf{x}_t \mid \mathbf{y}_{1:t-1}) \text{ and } p(\mathbf{x}_t \mid \mathbf{y}_{1:t}) \text{ Gaussian}$
+% \end{itemize}
 \end{proof}
 
+\section{How Q and R shape the filter}\label{sec:qr}
+Now that we understand the recursion, we ask what happens when the process noise covariance $\mathbf{Q}$ and the measurement noise covariance $\mathbf{R}$ are wrong. These matrices determine how the filter balances trust between the model dynamics and the incoming measurements. In practice, they act as tuning parameters, and poor choices can make the filter behave badly~\cite[Ch.~7]{labbe:kalman_and_bayesian_filters}. In the following, we discuss the effects of misspecifying $\mathbf{Q}$ and $\mathbf{R}$.
 
-% what is a Kalman Filter and its meaning, applications, why relevant in my thesis; mathematical background, state space representation, Gaussian noise assumptions, recursive Bayesian estimation (predict-update cycle), introduce predition and update step, covariance matrices
-The Kalman filter is important because it is used to estimate and predict hidden states in time series models. The data can be noisy and the filter helps to combine the information from the model and the observations in a optimal way. It's useful for studying financial and economic data, where we want to follow smooth trends and understand uncertainty in the predictions \cite{palomar:portfolio_optimization}. However it works under two main assumptions. That the system is linear and the noise is Gaussian. These assumptions make the filter easy to use but it also comes with limitations. If the system behaves in a non-linear way or if the noise is not Gaussian, the filter doesn't work. 
-To handle such cases there are extension like Extended Kalman Filter (EKF) and the Unscented Kalman Filter (UKF). These methods follow the same idea but can deal better with non-linear models \cite[Chapter X]{sarkka:bayesian_filtering}.
+\subsection*{Over-trusting measurements (low $\R$ or high $\Q$)} 
+If $\mathbf{R}$ is set too low, we assume that the observations are more precise than they actually are, or equivalently if $\mathbf{Q}$ is set too high, the filter places too much trust in the measurements relative to the model prediction. As a result, the Kalman gain $\mathbf{K}_t$ becomes large, and the filter strongly adjusts its estimate toward each new observation.
 
-% derivation of the Kalman Fitler Equations, present the KF algorithm step-by-step
+The estimated state closely follows the measurements. For example, if a GPS sensor is assumed to be extremely accurate when it is not, the estimated trajectory will fluctuate, tracking measurement noise as if it were real motion. Although the estimate may appear to fit the data well, the filter is effectively mistaking noise for signal and loses predictive reliability.
 
-% discussion of assumptions and limitations
+\subsection*{Over-trusting the model (low $\Q$ or high $\R$)} 
+If $\Q$ is set too low, assuming the system dynamics are nearly noise-free, or equivalently if $\R$ is set very high, the filter will underweight new observations and rely too strongly on the model's predictions. In this case, the Kalman gain $\mathbf{K}_t$ remains small, so the updates adjust the state estimate only slightly with each new measurement. 
 
-% application to my thesis
+The filter becomes overconfident in its prior and the estimated state tends to change only slowly. This can lead to the estimates lagging behind the true state when the actual system evolves faster or differently than expected. Major differences between the model and reality might not be corrected quickly, since the filter is resistant to trust incoming data. 
 
-% conclusion?
+The relative size of $\mathbf{Q}$ and $\mathbf{R}$ determines the behavior of the filter. If they are not chosen to match the true noise levels, the filter may either become too sensitive, tracking noise, or too sluggish, failing to respond to genuine changes. In practice, $\mathbf{Q}$ and $\mathbf{R}$ are often tuned empirically or estimated, for example, by likelihood maximization. A well-tuned filter balances these effects, smoothing out noise while still adapting quickly to changes in the underlying state.
 
-\subsection{Application}
-The Kalman filter is widely used in various fields, including:
-\begin{itemize}
-    \item \textbf{Navigation}: Tracking planes, ships, and spacecraft
-    \item \textbf{Robotics}: Helping robots know their position
-    \item \textbf{Finance}: Modeling stock prices
-    \item \textbf{Weather}: Predicting weather patterns
-    \item \textbf{Phones}: Improving GPS location
-\end{itemize}
+\begin{example}[Illustration on the tracked drone]\label{ex:drone-qr}
+To see these effects concretely, we return to the two-dimensional drone of Example~\ref{ex:drone}. We simulate one true trajectory from the constant-velocity model with process noise acting on the velocity, together with noisy GPS measurements of the position, and then run the Kalman filter three times on the same data and from the same prior, once with the correct covariances, once with $\mathbf{R}$ scaled down by a factor of one hundred, and once with $\mathbf{R}$ scaled up by the same factor. Since lowering $\mathbf{R}$ has the same effect on the Kalman gain as inflating $\mathbf{Q}$, and raising it the same effect as shrinking $\mathbf{Q}$, varying $\mathbf{R}$ alone already shows both cases discussed above.
 
-% These methods are used in fields such as navigation, aerospace, space engineering, telecommunications, remote sensing, audio signal processing, control systems, and financial modeling, where the accurate estimation of dynamic system variables, either in real time or retrospectively, is important. 
-% \\
+Figure~\ref{fig:drone-qr-traj} shows the resulting trajectories, one panel per filter setting. Each panel plots the position plane. The gray dots are the noisy GPS measurements, the solid line is the true simulated path, and the dashed line is the filtered estimate, so the quality of a filter can be read off from how closely its dashed line follows the solid one. The well calibrated filter in the left panel smooths the measurement noise while staying on the true path. With $\mathbf{R}$ too small, in the middle panel, the filter treats each GPS reading as almost exact, so the estimate chases the measurement noise and the dashed path becomes jagged. With $\mathbf{R}$ too large, in the right panel, the filter leans on the constant-velocity model and lags behind the true trajectory where it curves, drifting away along the final bend.
+
+\begin{figure} 
+    \centering
+    \includegraphics[width=\textwidth]{Figures/drone_kf_qr_trajectory.png}
+    \caption{Kalman filter on the drone of Example~\ref{ex:drone} ($T = 60$, $\Delta t = 1$), run on one simulated trajectory with three choices of the assumed measurement covariance $\mathbf{R}$. The well calibrated filter (left) tracks the true path. With $\mathbf{R}$ too small (middle) the estimate follows the GPS noise, and with $\mathbf{R}$ too large (right) the estimate lags along the curve.}
+    \label{fig:drone-qr-traj}
+\end{figure}
+
+Averaged over $300$ independent simulations, the position error is $3.2$ for the calibrated filter, $4.4$ when $\mathbf{R}$ is too small and $6.6$ when $\mathbf{R}$ is too large. Judged on this number alone the filter with $\mathbf{R}$ too small looks almost as good as the calibrated one. The position error is not the whole story, however. The filter also reports a covariance $\mathbf{P}_t$, and a trustworthy filter is one whose reported uncertainty matches the errors it actually makes. Here the two come apart. The calibrated filter reports an uncertainty close to the error it delivers. The filter with $\mathbf{R}$ too small reports a far smaller one, so it claims an accuracy it does not achieve, while the filter with $\mathbf{R}$ too large reports a far larger one and is correspondingly over-cautious. A misspecified $\mathbf{R}$ therefore damages the reported uncertainty far more than the estimate itself.
+These experiments confirm the qualitative discussion above and motivate the estimation of $\mathbf{Q}$ and $\mathbf{R}$ from data, the subject of Chapter~\ref{chap:parameter}.
+\end{example}
+We now trace through one complete predict-update cycle with numbers, using a simplified version of the drone problem.
+\begin{example}[One step Kalman filter]\label{ex:kalman_numerical}
+We track a drone moving along a line. The state $\mathbf{x}_t = (p_t, v_t)^\top$ collects its position $p_t$ and velocity $v_t$, and a GPS sensor measures the position only. With time step $\Delta t = 1$, the linear-Gaussian model \eqref{eq:linear ssm} takes the form
+\[
+    \mathbf{A} = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}, \qquad
+    \mathbf{H} = \begin{bmatrix} 1 & 0 \end{bmatrix}, \qquad
+    \mathbf{Q} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}, \qquad
+    R = 1 .
+\]
+The transition matrix $\mathbf{A}$ advances the position by one step of the velocity and leaves the velocity unchanged, while $\mathbf{H}$ extracts the position. Suppose the current belief at time $t = 0$ is
+\[
+    \mathbf{x}_{0|0} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \qquad
+    \mathbf{P}_0 = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix},
+\]
+so the drone starts at position $0$ with velocity $1$, and a GPS reading $y_1 = 1.2$ arrives at time $t = 1$.
+
+\textbf{Prediction.} Propagating the mean and covariance through the model gives
+\[
+    \mathbf{x}_{1|0} = \mathbf{A}\mathbf{x}_{0|0} = \begin{bmatrix} 1 \\ 1 \end{bmatrix}, \qquad
+    \mathbf{P}_{1|0} = \mathbf{A}\mathbf{P}_0\mathbf{A}^\top + \mathbf{Q} = \begin{bmatrix} 3 & 1 \\ 1 & 2 \end{bmatrix}.
+\]
+The predicted position is $1$, consistent with a unit step at velocity $1$, and the uncertainty has grown through the added process noise $\mathbf{Q}$.
+
+\textbf{Update.} The innovation and its variance are
+\[
+    v_1 = y_1 - \mathbf{H}\mathbf{x}_{1|0} = 1.2 - 1 = 0.2, \qquad
+    S_1 = \mathbf{H}\mathbf{P}_{1|0}\mathbf{H}^\top + R = 3 + 1 = 4,
+\]
+and the Kalman gain is
+\[
+    \mathbf{K}_1 = \mathbf{P}_{1|0}\mathbf{H}^\top S_1^{-1} = \frac{1}{4}\begin{bmatrix} 3 \\ 1 \end{bmatrix} = \begin{bmatrix} 0.75 \\ 0.25 \end{bmatrix}.
+\]
+The updated estimate and covariance follow as
+\[
+    \mathbf{x}_{1|1} = \mathbf{x}_{1|0} + \mathbf{K}_1 v_1 = \begin{bmatrix} 1.15 \\ 1.05 \end{bmatrix}, \qquad
+    \mathbf{P}_1 = \mathbf{P}_{1|0} - \mathbf{K}_1 S_1 \mathbf{K}_1^\top = \begin{bmatrix} 0.75 & 0.25 \\ 0.25 & 1.75 \end{bmatrix}.
+\]
+The position estimate moves from the predicted value $1$ toward the measurement $1.2$, stopping at $1.15$ because the filter trusts the model and the measurement in proportion to their uncertainties. Although only the position is measured, the velocity estimate is also corrected, from $1$ to $1.05$, since position and velocity are correlated through the off-diagonal entries of $\mathbf{P}_{1|0}$. The position variance drops from $3$ to $0.75$ and the velocity variance from $2$ to $1.75$, so both components become more certain.
+\end{example}
+
+\section{Limitations}\label{sec:kf-limitations}
+The Kalman filter is exact only under the assumptions of the linear-Gaussian state space model \eqref{eq:linear ssm}. When these assumptions are violated, the filter is no longer guaranteed to be optimal.
+
+\textbf{Linearity:}
+The filter assumes that both the transition and observation models are linear in the state. In many applications this is not the case. For example, a radar sensor measures range and angle, which are nonlinear functions of position, and such relationships cannot be written in the form $\mathbf{H}\x_t$. Applying the standard Kalman filter in these situations can lead to biased estimates and underestimated uncertainty~\cite[Ch.~5]{sarkka:bayesian_filtering}. Extensions such as the extended  and the unscented Kalman filter, discussed in Chapter~\ref{chap:nonlinear}, address this limitation.
+
+\textbf{Gaussianity:}
+The optimality of the Kalman filter relies on the assumption that the process and measurement noise are Gaussian. If the noise is heavy-tailed or exhibits large outliers, the filter is no longer optimal in the mean squared error sense. This is particularly relevant in finance, where return distributions often deviate from normality~\cite[Ch.~2]{palomar:portfolio_optimization}. 
+
+\textbf{Known parameters:}
+The filter assumes that the model parameters $\mathbf{A}$, $\mathbf{H}$, $\mathbf{Q}$, and $\mathbf{R}$ are known. In practice, they must be estimated from data. The innovation likelihood provides a principled way to do this, as discussed in Chapter~\ref{chap:parameter}. If $\mathbf{Q}$ or $\mathbf{R}$ are poorly specified, the Kalman gain becomes suboptimal, which can lead to inaccurate estimates or even divergence of the filter~\cite[Ch.~4]{sarkka:bayesian_filtering}.
 
 
-Limitation: 
+% If the GPS is replaced by a radar sensor that measures distance and bearing angle, both of which are non-linear functions of the Cartesian position, the standard Kalman filter is no longer exact. Applying it anyway gives biased estimates with underestimated covariances.
 
+% A second limitation is Gaussianity. Financial returns are known to have heavier tails than a Gaussian, and occasionally exhibit large jumps \cite{palomar:portfolio_optimization}. In such cases the Kalman filter is not optimal, even if the system dynamics are linear.
 
+% Finally, the filter requires that the model parameters $\mathbf{A}$, $\mathbf{H}$, $\mathbf{Q}$, and $\mathbf{R}$ are known. In practice they must be estimated from data, which is the subject of Chapter~\ref{chap:parameter}.
 
-
+% The next chapter addresses the first limitation. The extended Kalman filter and the unscented Kalman filter both extend the Kalman framework to handle non linear observation and transition functions, using exactly the same drone model with the GPS replaced by a radar to motivate the extension.
